@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block titulo %}Nuevo Registro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_formulario_registros.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+{% endblock %}
+
+{% block contenido %}
+<div class="formulario-contenedor">
+
+    <!-- FIX 1: action apunta a la ruta correcta + enctype para archivos -->
+    <form method="POST" action="{{ url_for('formulario_registros') }}">
+
+        <h2>Nuevo Registro</h2>
+        <a href="{{ url_for('registros') }}" class="btn-ver-todos">Ver movimientos</a>
+
+        <!-- FIX 2: hidden_tag() genera el CSRF token — es obligatorio -->
+        {{ form.hidden_tag() }}
+
+        <label>Tipo</label>
+        {{ form.tipo(class_="form-control", id="tipo") }}
+
+        <label>Fecha</label>
+        {{ form.fecha(class_="form-control") }}
+
+        <label>Frecuencia</label>
+        {{ form.frecuencia(class_="form-control") }}
+
+        <label>Descripción</label>
+        {{ form.descripcion(class_="form-control") }}
+
+        <label>Valor</label>
+        {{ form.valor(class_="form-control") }}
+
+        <!-- Categoría: visible solo para ingreso/gasto (JS lo controla) -->
+        <div id="categoria-container">
+            <label id="label-categoria">Categoría</label>
+            <div class="categoria-actions">
+                {{ form.categoria(class_="form-control", id="categoria") }}
+                <button type="button" onclick="abrirModalCategoria()">
+                    Agregar categoría
+                </button>
+            </div>
+        </div>
+
+        <!-- Persona: visible solo para deuda/préstamo (JS lo controla) -->
+        <div id="persona-container">
+            <label>Persona</label>
+            {{ form.persona(class_="form-control", id="persona") }}
+        </div>
+
+        <button type="submit">Guardar</button>
+
+    </form>
+</div>
+
+<!-- ══════════════════════════════════
+     Modal Crear Categoría
+══════════════════════════════════ -->
+<div id="modalCategoria" class="modal-categoria">
+    <div class="modal-categoria-contenido">
+        <span class="cerrar-modal" onclick="cerrarModalCategoria()">&times;</span>
+        <h3>Crear nueva categoría</h3>
+
+        <!-- FIX 3: este form SÍ tiene action correcto — no lo toques -->
+        <form id="formCrearCategoria"
+              method="POST"
+              action="{{ url_for('crear_categoria') }}">
+
+            {{ categoria_form.hidden_tag() }}
+
+            <label>Nombre:</label>
+            {{ categoria_form.nombre }}
+
+            <div class="modal-actions">
+                <button type="submit">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/formulario_registro.js') }}"></script>
+{% endblock %}

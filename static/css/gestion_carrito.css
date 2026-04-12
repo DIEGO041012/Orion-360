@@ -1,0 +1,74 @@
+/* Contenedor principal */
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Lista del carrito */
+.carrito-lista {
+    list-style: none;
+    padding: 0;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.carrito-lista li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.carrito-lista li:hover {
+    transform: scale(1.02);
+}
+
+/* Imagen del producto */
+.carrito-lista img {
+    border-radius: 8px;
+    margin-right: 15px;
+    object-fit: cover;
+}
+
+/* Nombre y precio */
+.carrito-lista li span {
+    flex: 1;
+    font-size: 1rem;
+    color: #444;
+}
+
+/* Botón eliminar */
+.carrito-lista a {
+    text-decoration: none;
+    font-size: 1.2rem;
+    color: #e74c3c;
+    transition: color 0.2s ease;
+}
+
+.carrito-lista a:hover {
+    color: #c0392b;
+}
+
+/* Total */
+h3 {
+    text-align: right;
+    max-width: 700px;
+    margin: 20px auto 0;
+    color: #222;
+    font-weight: bold;
+}
+
+/* Mensaje carrito vacío */
+p {
+    text-align: center;
+    color: #888;
+    font-size: 1.1rem;
+}
+    

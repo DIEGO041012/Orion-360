@@ -1,0 +1,250 @@
+:root {
+  --bg: #0f172a;
+  --card: rgba(255,255,255,0.05);
+  --border: rgba(255,255,255,0.08);
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --accent: #10b981;
+}
+
+.perfil-contenedor {
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem;
+  color: var(--text);
+}
+
+/* GLASS EFFECT */
+.glass {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+/* HEADER */
+.perfil-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.perfil-imagen {
+  position: relative;
+}
+
+.perfil-imagen img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--border);
+}
+
+/* BOTÓN CAMBIAR FOTO */
+.cambiar-foto {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.6);
+  text-align: center;
+  font-size: 12px;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 0 0 50% 50%;
+}
+
+.cambiar-foto input {
+  display: none;
+}
+
+.perfil-nombre h2 {
+  margin: 0;
+}
+
+.perfil-rol {
+  color: var(--muted);
+}
+
+.badge-activo {
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+/* BODY */
+.perfil-body {
+  display: flex;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* INFO */
+.perfil-info {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.info-item {
+  margin-bottom: 1rem;
+}
+
+.info-item span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.info-item p {
+  margin: 2px 0 0;
+}
+
+/* FORM */
+.perfil-configuracion {
+  flex: 2;
+  padding: 2rem;
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+  margin-top: 5px;
+}
+
+/* BOTONES */
+.acciones {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-guardar {
+  background: var(--primary);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-guardar:hover {
+  background: #2563eb;
+}
+
+.btn-cancelar {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ========================= */
+/* 📱 TABLETS */
+/* ========================= */
+@media (max-width: 1024px) {
+  .perfil-body {
+    flex-direction: column;
+  }
+
+  .perfil-info,
+  .perfil-configuracion {
+    width: 100%;
+  }
+}
+
+
+/* ========================= */
+/* 📱 CELULARES */
+/* ========================= */
+@media (max-width: 768px) {
+
+  .perfil-contenedor {
+    padding: 1rem;
+  }
+
+  /* HEADER */
+  .perfil-header {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .perfil-imagen img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .perfil-nombre h2 {
+    font-size: 1.4rem;
+  }
+
+  /* BODY */
+  .perfil-body {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* GRID FORM → UNA COLUMNA */
+  .grid-form {
+    grid-template-columns: 1fr;
+  }
+
+  /* BOTONES */
+  .acciones {
+    flex-direction: column;
+  }
+
+  .btn-guardar,
+  .btn-cancelar {
+    width: 100%;
+  }
+}
+
+
+/* ========================= */
+/* 📱 MÓVILES PEQUEÑOS */
+/* ========================= */
+@media (max-width: 480px) {
+
+  .perfil-header {
+    padding: 1rem;
+  }
+
+  .perfil-configuracion,
+  .perfil-info {
+    padding: 1rem;
+  }
+
+  .perfil-imagen img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .perfil-nombre h2 {
+    font-size: 1.2rem;
+  }
+
+  .input-group input {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+}
+

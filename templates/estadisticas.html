@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block titulo %}Estadísticas{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<style>
+.stats-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.stats-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.stats-header p {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.graficas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.grafica-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color var(--transition);
+}
+
+.grafica-card:hover {
+    border-color: var(--border);
+}
+
+.grafica-card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.grafica-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.grafica-card-body {
+    padding: 16px;
+    height: 300px;
+}
+
+.grafica-card-body > div {
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 900px) {
+    .graficas-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="stats-page">
+
+    <div class="stats-header">
+        <h1>Estadísticas</h1>
+        <p>Visualización de tu actividad financiera.</p>
+    </div>
+
+    <div class="graficas-grid">
+
+        <div class="grafica-card">
+            <div class="grafica-card-header">
+                <span class="grafica-card-title">Ingresos y Gastos</span>
+            </div>
+            <div class="grafica-card-body">
+                <div id="grafica1"></div>
+            </div>
+        </div>
+
+        <div class="grafica-card">
+            <div class="grafica-card-header">
+                <span class="grafica-card-title">Deudas por Persona</span>
+            </div>
+            <div class="grafica-card-body">
+                <div id="grafica2"></div>
+            </div>
+        </div>
+
+        <div class="grafica-card">
+            <div class="grafica-card-header">
+                <span class="grafica-card-title">Préstamos por Persona</span>
+            </div>
+            <div class="grafica-card-body">
+                <div id="grafica3"></div>
+            </div>
+        </div>
+
+        <div class="grafica-card">
+            <div class="grafica-card-header">
+                <span class="grafica-card-title">Estado de Tareas</span>
+            </div>
+            <div class="grafica-card-body">
+                <div id="grafica4"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+/* Paleta Orion 360 dark */
+const C = {
+    accent:  '#e8ff6b',
+    green:   '#4ade80',
+    red:     '#f87171',
+    blue:    '#60a5fa',
+    amber:   '#fb923c',
+    purple:  '#a78bfa',
+    surface: '#1a1a1a',
+    border:  '#2a2a2a',
+    text:    '#8a8a85',
+    textPri: '#f0f0ee',
+};
+
+const baseTheme = {
+    backgroundColor: 'transparent',
+    textStyle: { color: C.text, fontFamily: 'DM Sans, sans-serif', fontSize: 12 },
+};
+
+const axisStyle = {
+    axisLine:  { lineStyle: { color: C.border } },
+    axisTick:  { lineStyle: { color: C.border } },
+    axisLabel: { color: C.text, fontSize: 11 },
+    splitLine: { lineStyle: { color: C.border, type: 'dashed' } },
+};
+
+function initChart(id) {
+    return echarts.init(document.getElementById(id), null, { renderer: 'canvas' });
+}
+
+const g1 = initChart('grafica1');
+const g2 = initChart('grafica2');
+const g3 = initChart('grafica3');
+const g4 = initChart('grafica4');
+
+fetch('/estadisticas/data')
+    .then(r => r.json())
+    .then(data => {
+
+        /* Gráfica 1 — Ingresos y Gastos */
+        const fechas   = data.movimientos.map(d => d.fecha);
+        const ingresos = data.movimientos.map(d => d.ingreso);
+        const gastos   = data.movimientos.map(d => d.gasto);
+
+        g1.setOption({
+            ...baseTheme,
+            tooltip: { trigger: 'axis', backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', textStyle: { color: '#f0f0ee' } },
+            legend: { data: ['Ingresos', 'Gastos'], textStyle: { color: C.text }, top: 0 },
+            grid: { top: 36, bottom: 24, left: 44, right: 12 },
+            xAxis: { type: 'category', data: fechas, ...axisStyle },
+            yAxis: { type: 'value', ...axisStyle },
+            series: [
+                {
+                    name: 'Ingresos', type: 'bar', data: ingresos,
+                    itemStyle: { color: C.green, borderRadius: [4,4,0,0] },
+                    barMaxWidth: 32,
+                },
+                {
+                    name: 'Gastos', type: 'bar', data: gastos,
+                    itemStyle: { color: C.red, borderRadius: [4,4,0,0] },
+                    barMaxWidth: 32,
+                },
+            ],
+        });
+
+        /* Gráfica 2 — Deudas por persona */
+        g2.setOption({
+            ...baseTheme,
+            tooltip: { trigger: 'axis', backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', textStyle: { color: '#f0f0ee' } },
+            grid: { top: 12, bottom: 28, left: 44, right: 12 },
+            xAxis: { type: 'category', data: data.deudas.map(d => d.persona), ...axisStyle },
+            yAxis: { type: 'value', ...axisStyle },
+            series: [{
+                type: 'bar',
+                data: data.deudas.map(d => d.total_saldo),
+                itemStyle: { color: C.amber, borderRadius: [4,4,0,0] },
+                barMaxWidth: 40,
+            }],
+        });
+
+        /* Gráfica 3 — Préstamos por persona (donut) */
+        g3.setOption({
+            ...baseTheme,
+            tooltip: { trigger: 'item', backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', textStyle: { color: '#f0f0ee' } },
+            legend: { bottom: 0, textStyle: { color: C.text }, itemWidth: 10, itemHeight: 10 },
+            series: [{
+                type: 'pie',
+                radius: ['38%', '62%'],
+                center: ['50%', '46%'],
+                data: data.prestamos.map((p, i) => ({
+                    name: p.persona,
+                    value: p.monto_total,
+                    itemStyle: { color: [C.blue, C.purple, C.accent, C.green, C.amber][i % 5] },
+                })),
+                label: { color: C.text, fontSize: 11 },
+                labelLine: { lineStyle: { color: C.border } },
+            }],
+        });
+
+        /* Gráfica 4 — Tareas por estado */
+        const colors4 = [C.green, C.amber, C.red, C.blue];
+        g4.setOption({
+            ...baseTheme,
+            tooltip: { trigger: 'item', backgroundColor: '#1a1a1a', borderColor: '#2a2a2a', textStyle: { color: '#f0f0ee' } },
+            legend: { bottom: 0, textStyle: { color: C.text }, itemWidth: 10, itemHeight: 10 },
+            series: [{
+                type: 'pie',
+                radius: ['38%', '62%'],
+                center: ['50%', '46%'],
+                roseType: 'radius',
+                data: data.tareas.map((t, i) => ({
+                    name: t.estado,
+                    value: t.cantidad,
+                    itemStyle: { color: colors4[i % colors4.length] },
+                })),
+                label: { color: C.text, fontSize: 11 },
+                labelLine: { lineStyle: { color: C.border } },
+            }],
+        });
+
+    })
+    .catch(err => console.error('Error cargando estadísticas:', err));
+
+window.addEventListener('resize', () => {
+    g1.resize(); g2.resize(); g3.resize(); g4.resize();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Oryon 360 — {% block titulo %}{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.png') }}" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {% block extra_css %}
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}" />
+    {% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}{% if current_user.is_authenticated %} autenticado{% endif %}">
+
+    {% if current_user.is_authenticated %}
+
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logomark">O3</div>
+            <span class="sidebar-name">Oryon 360</span>
+        </div>
+
+        <div class="sidebar-nav">
+            <span class="nav-section-label">Principal</span>
+            <a href="{{ url_for('panel_usuario') }}" data-tooltip="Panel">
+                <i class="fa-solid fa-table-columns"></i>
+                <span class="nav-text">Panel</span>
+            </a>
+            <a href="{{ url_for('tareas') }}" data-tooltip="Tareas">
+                <i class="fa-solid fa-check-circle"></i>
+                <span class="nav-text">Tareas</span>
+            </a>
+            <a href="{{ url_for('agenda') }}" data-tooltip="Agenda">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span class="nav-text">Agenda</span>
+            </a>
+            <a href="{{ url_for('movimientos') }}" data-tooltip="Movimientos">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                <span class="nav-text">Movimientos</span>
+            </a>
+            <a href="{{ url_for('estadisticas') }}" data-tooltip="Estadísticas">
+                <i class="fa-solid fa-chart-bar"></i>
+                <span class="nav-text">Estadísticas</span>
+            </a>
+
+            <span class="nav-section-label">Finanzas</span>
+            <a href="{{ url_for('ideas') }}" data-tooltip="Ideas">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span class="nav-text">Ideas</span>
+            </a>
+            <a href="{{ url_for('cartera') }}" data-tooltip="Cartera">
+                <i class="fa-solid fa-wallet"></i>
+                <span class="nav-text">Cartera</span>
+            </a>
+            <a href="{{ url_for('compras') }}" data-tooltip="Compras">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="nav-text">Compras</span>
+            </a>
+            <a href="{{ url_for('asistente') }}" data-tooltip="Asistente">
+                <i class="fa-solid fa-robot"></i>
+                <span class="nav-text">Tu asistente</span>
+            </a>
+
+            <span class="nav-section-label">Cuenta</span>
+            <a href="{{ url_for('configuracion') }}" data-tooltip="Ajustes">
+                <i class="fa-solid fa-gear"></i>
+                <span class="nav-text">Ajustes</span>
+            </a>
+            <a href="#" data-tooltip="Cerrar sesión"
+               onclick="event.preventDefault(); document.getElementById('form-logout').submit()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span class="nav-text">Cerrar sesión</span>
+            </a>
+            <form id="form-logout" method="POST" action="{{ url_for('cerrar_sesion') }}" style="display:none">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user" onclick="toggleUserDropdown()">
+                <img src="{{ usuario_foto }}" alt="Foto de perfil" class="sidebar-avatar" />
+                <span class="sidebar-username">{{ current_user.nombre_usuario }}</span>
+            </div>
+        </div>
+    </nav>
+
+    <div id="overlay" class="overlay" onclick="closeMobileSidebar()"></div>
+
+    {% endif %}
+
+    <!-- Topbar -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-left">
+                {% if current_user.is_authenticated %}
+                <button class="sidebar-toggle" onclick="toggleMenu()" aria-label="Menú" title="Mostrar/ocultar menú">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="nav-center">
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('inicio') }}" class="logo">
+                        <img src="{{ url_for('static', filename='img/logo-solo.png') }}" alt="Orion 360" />
+                    </a>
+                    <span class="welcome-text">Hola, <strong>{{ usuario }}</strong></span>
+
+                    <div class="user-menu">
+                        <img src="{{ usuario_foto }}" alt="Foto de perfil" class="user-avatar" onclick="toggleUserDropdown()" />
+                        <div class="dropdown-menu-barra" id="userDropdown">
+                            <a href="{{ url_for('configuracion') }}">
+                                <i class="fa-solid fa-gear" style="margin-right:7px;font-size:12px"></i>Configuración
+                            </a>
+                            <button onclick="document.getElementById('form-logout').submit()"
+                                    style="display:flex;align-items:center;gap:7px;width:100%;padding:8px 12px;background:none;border:none;font-size:13px;color:var(--text-secondary);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s">
+                                <i class="fa-solid fa-right-from-bracket" style="font-size:12px"></i>Cerrar sesión
+                            </button>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <a href="{{ url_for('inicio') }}" class="logo">
+                        <img src="{{ url_for('static', filename='img/logo-solo.png') }}" alt="Orion 360" />
+                    </a>
+                    <span style="flex:1"></span>
+                    <a href="{{ url_for('iniciar_sesion') }}" class="auth-link">Iniciar sesión</a>
+                    <a href="{{ url_for('registro') }}" class="auth-link">Registrarse</a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <!-- Contenido -->
+    <div id="contenido-principal">
+        <main>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul class="mensajes-flash">
+                        {% for mensaje in messages %}
+                            <li>{{ mensaje }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+            {% block contenido %}{% endblock %}
+        </main>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <script>
+        const STORAGE_KEY = 'orion360_sidebar_collapsed';
+
+        /* Aplicar estado guardado ANTES de pintar — evita parpadeo */
+        (function () {
+            if (window.innerWidth > 768 && localStorage.getItem(STORAGE_KEY) === '1') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+        })();
+
+        /* Toggle principal — mismo nombre que antes para no romper nada */
+        function toggleMenu() {
+            if (window.innerWidth <= 768) {
+                /* Móvil: deslizar sidebar completo */
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('overlay');
+                const open = sidebar.classList.toggle('activo');
+                overlay.classList.toggle('activo', open);
+            } else {
+                /* Desktop: colapsar a íconos */
+                const collapsed = document.body.classList.toggle('sidebar-collapsed');
+                localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
+            }
+        }
+
+        function closeMobileSidebar() {
+            document.getElementById('sidebar').classList.remove('activo');
+            document.getElementById('overlay').classList.remove('activo');
+        }
+
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        document.addEventListener('click', function (e) {
+            const dropdown = document.getElementById('userDropdown');
+            const avatar   = document.querySelector('.user-avatar');
+            const sideUser = document.querySelector('.sidebar-user');
+            if (dropdown && !dropdown.contains(e.target) && !avatar?.contains(e.target) && !sideUser?.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        /* Marcar enlace activo */
+        (function () {
+            const path = window.location.pathname;
+            document.querySelectorAll('.sidebar-nav a[href]').forEach(function(link) {
+                if (link.getAttribute('href') === path) link.classList.add('active');
+            });
+        })();
+    </script>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar Idea{% endblock %}
+
+{% block contenido %}
+<div class="ideas-page">
+  <h2>✏️ Editar Idea</h2>
+
+  <!-- Formulario para editar idea -->
+  <form class="form-idea" method="POST" action="{{ url_for('editar_idea', id=idea.id) }}">
+    <input type="text" name="titulo" placeholder="Título de la idea" value="{{ idea.titulo }}" required>
+    <textarea name="descripcion" rows="4" placeholder="Describe tu idea..." required>{{ idea.descripcion }}</textarea>
+    <input type="text" name="categoria" placeholder="Categoría (opcional)" value="{{ idea.categoria or '' }}">
+    <button type="submit">Actualizar Idea</button>
+    <a href="{{ url_for('ideas') }}" class="btn btn-secondary">Cancelar</a>
+  </form>
+
+  <!-- Mostrar mensaje flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+{% endblock %}

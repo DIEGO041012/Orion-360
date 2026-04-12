@@ -2,10 +2,16 @@ services:
   - type: web
     name: LifePilot
     env: python
+    pythonVersion: 3.12.14
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     envVars:
+      - key: ENV
+        value: 'production'
+        sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: SECRET_KEY
         sync: false
       - key: GOOGLE_CLIENT_ID

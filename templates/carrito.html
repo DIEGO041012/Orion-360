@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_carrito.css') }}">
+{% endblock %}
+{% block contenido %}
+<h2>Tu Carrito</h2>
+{% if carrito %}
+    <ul class="carrito-lista">
+        {% for item in carrito %}
+        <li>
+            <img src="{{ item.imagen }}" alt="{{ item.nombre }}" width="80">
+            {{ item.nombre }} - ${{ item.precio }}
+            <a href="{{ url_for('eliminar_del_carrito', item_id=item.get('id', loop.index0)) }}">❌</a>
+        </li>
+        {% endfor %}
+    </ul>
+    <h3>Total: ${{ total }}</h3>
+{% else %}
+    <p>Tu carrito está vacío</p>
+{% endif %}
+{% endblock %}

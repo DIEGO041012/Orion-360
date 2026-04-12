@@ -55,164 +55,375 @@ login_manager.login_view = 'iniciar_sesion'
 # BASE DE DATOS
 # ══════════════════════════════════════════════════════════
 
+class DatabaseCursor:
+    def __init__(self, cursor, use_postgres=False):
+        self._cursor = cursor
+        self._use_postgres = use_postgres
+
+    def execute(self, query, params=None):
+        if params is None:
+            params = ()
+        if self._use_postgres:
+            query = query.replace('?', '%s')
+        return self._cursor.execute(query, params)
+
+    def executemany(self, query, seq_of_params):
+        if self._use_postgres:
+            query = query.replace('?', '%s')
+        return self._cursor.executemany(query, seq_of_params)
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
+class DatabaseConnection:
+    def __init__(self, conn, use_postgres=False):
+        self._conn = conn
+        self.is_postgres = use_postgres
+
+    def cursor(self, *args, **kwargs):
+        raw_cursor = self._conn.cursor(*args, **kwargs)
+        return DatabaseCursor(raw_cursor, self.is_postgres)
+
+    def commit(self):
+        return self._conn.commit()
+
+    def close(self):
+        return self._conn.close()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type:
+                self._conn.rollback()
+            else:
+                self._conn.commit()
+        finally:
+            self._conn.close()
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 def get_db_connection():
-    import sqlite3
+    database_url = app.config.get('DATABASE_URL')
+    if database_url:
+        conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.DictCursor)
+        return DatabaseConnection(conn, use_postgres=True)
+
     db_path = os.path.join(app.root_path, 'orion.db')
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    return conn
+    return DatabaseConnection(conn)
 
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.executescript("""
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre_usuario TEXT NOT NULL UNIQUE,
-            correo_electronico TEXT UNIQUE,
-            contraseña TEXT,
-            foto TEXT,
-            saldo_wallet REAL DEFAULT 0,
-            nit TEXT,
-            direccion TEXT,
-            telefono TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
 
-        CREATE TABLE IF NOT EXISTS listas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            usuario_id INTEGER NOT NULL,
-            color TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
+    if conn.is_postgres:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                nombre_usuario TEXT NOT NULL UNIQUE,
+                correo_electronico TEXT UNIQUE,
+                contraseña TEXT,
+                foto TEXT,
+                saldo_wallet REAL DEFAULT 0,
+                nit TEXT,
+                direccion TEXT,
+                telefono TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
 
-        CREATE TABLE IF NOT EXISTS tareas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT NOT NULL,
-            lista_id INTEGER,
-            usuario_id INTEGER NOT NULL,
-            fecha_limite DATE,
-            estado TEXT DEFAULT 'pendiente',
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (lista_id) REFERENCES listas(id),
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
+            CREATE TABLE IF NOT EXISTS listas (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                color TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS categorias (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL,
-            usuario_id INTEGER NOT NULL,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
+            CREATE TABLE IF NOT EXISTS tareas (
+                id SERIAL PRIMARY KEY,
+                titulo TEXT NOT NULL,
+                lista_id INTEGER,
+                usuario_id INTEGER NOT NULL,
+                fecha_limite DATE,
+                estado TEXT DEFAULT 'pendiente',
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (lista_id) REFERENCES listas(id),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS movimientos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            fecha DATE NOT NULL,
-            descripcion TEXT,
-            valor REAL NOT NULL,
-            tipo TEXT,
-            usuario_id INTEGER NOT NULL,
-            categoria_id INTEGER,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-            FOREIGN KEY (categoria_id) REFERENCES categorias(id)
-        );
+            CREATE TABLE IF NOT EXISTS categorias (
+                id SERIAL PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS deudas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            descripcion TEXT,
-            persona TEXT,
-            usuario_id INTEGER NOT NULL,
-            monto_inicial REAL,
-            saldo REAL,
-            frecuencia TEXT,
-            estado TEXT,
-            fecha DATE,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            tipo TEXT,
-            movimiento_id INTEGER,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-            FOREIGN KEY (movimiento_id) REFERENCES movimientos(id)
-        );
+            CREATE TABLE IF NOT EXISTS movimientos (
+                id SERIAL PRIMARY KEY,
+                fecha DATE NOT NULL,
+                descripcion TEXT,
+                valor REAL NOT NULL,
+                tipo TEXT,
+                usuario_id INTEGER NOT NULL,
+                categoria_id INTEGER,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS prestamos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            descripcion TEXT,
-            persona TEXT,
-            usuario_id INTEGER NOT NULL,
-            monto_inicial REAL,
-            saldo REAL,
-            frecuencia TEXT,
-            estado TEXT,
-            fecha DATE,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            movimiento_id INTEGER,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-            FOREIGN KEY (movimiento_id) REFERENCES movimientos(id)
-        );
+            CREATE TABLE IF NOT EXISTS deudas (
+                id SERIAL PRIMARY KEY,
+                descripcion TEXT,
+                persona TEXT,
+                usuario_id INTEGER NOT NULL,
+                monto_inicial REAL,
+                saldo REAL,
+                frecuencia TEXT,
+                estado TEXT,
+                fecha DATE,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                tipo TEXT,
+                movimiento_id INTEGER,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (movimiento_id) REFERENCES movimientos(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS recargas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER NOT NULL,
-            metodo TEXT,
-            transaccion_id TEXT UNIQUE,
-            monto REAL,
-            estado TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
+            CREATE TABLE IF NOT EXISTS prestamos (
+                id SERIAL PRIMARY KEY,
+                descripcion TEXT,
+                persona TEXT,
+                usuario_id INTEGER NOT NULL,
+                monto_inicial REAL,
+                saldo REAL,
+                frecuencia TEXT,
+                estado TEXT,
+                fecha DATE,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                movimiento_id INTEGER,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (movimiento_id) REFERENCES movimientos(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS wallet_movimientos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER NOT NULL,
-            referencia_externa TEXT,
-            monto REAL,
-            tipo TEXT,
-            estado TEXT,
-            descripcion TEXT,
-            medio_pago TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
+            CREATE TABLE IF NOT EXISTS recargas (
+                id SERIAL PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                metodo TEXT,
+                transaccion_id TEXT UNIQUE,
+                monto REAL,
+                estado TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS ideas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT,
-            descripcion TEXT,
-            categoria TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
+            CREATE TABLE IF NOT EXISTS wallet_movimientos (
+                id SERIAL PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                referencia_externa TEXT,
+                monto REAL,
+                tipo TEXT,
+                estado TEXT,
+                descripcion TEXT,
+                medio_pago TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
 
-        CREATE TABLE IF NOT EXISTS agenda (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            titulo TEXT NOT NULL,
-            descripcion TEXT,
-            fecha DATE NOT NULL,
-            hora TEXT,
-            usuario_id INTEGER NOT NULL,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
+            CREATE TABLE IF NOT EXISTS ideas (
+                id SERIAL PRIMARY KEY,
+                titulo TEXT,
+                descripcion TEXT,
+                categoria TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
 
-        CREATE TABLE IF NOT EXISTS carrito_items (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario_id INTEGER NOT NULL,
-            nombre TEXT NOT NULL,
-            precio REAL NOT NULL,
-            imagen TEXT,
-            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-        );
-    """)
+            CREATE TABLE IF NOT EXISTS agenda (
+                id SERIAL PRIMARY KEY,
+                titulo TEXT NOT NULL,
+                descripcion TEXT,
+                fecha DATE NOT NULL,
+                hora TEXT,
+                usuario_id INTEGER NOT NULL,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
 
-    cursor.execute('PRAGMA table_info(tareas)')
-    columnas_tareas = [row[1] for row in cursor.fetchall()]
-    if 'estado' not in columnas_tareas:
-        cursor.execute("ALTER TABLE tareas ADD COLUMN estado TEXT DEFAULT 'pendiente'")
+            CREATE TABLE IF NOT EXISTS carrito_items (
+                id SERIAL PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                nombre TEXT NOT NULL,
+                precio REAL NOT NULL,
+                imagen TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+        """)
+
+        cursor.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'tareas'"
+        )
+        columnas_tareas = [row['column_name'] for row in cursor.fetchall()]
+        if 'estado' not in columnas_tareas:
+            cursor.execute("ALTER TABLE tareas ADD COLUMN estado TEXT DEFAULT 'pendiente'")
+    else:
+        cursor.executescript("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre_usuario TEXT NOT NULL UNIQUE,
+                correo_electronico TEXT UNIQUE,
+                contraseña TEXT,
+                foto TEXT,
+                saldo_wallet REAL DEFAULT 0,
+                nit TEXT,
+                direccion TEXT,
+                telefono TEXT,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS listas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                color TEXT,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS tareas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT NOT NULL,
+                lista_id INTEGER,
+                usuario_id INTEGER NOT NULL,
+                fecha_limite DATE,
+                estado TEXT DEFAULT 'pendiente',
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (lista_id) REFERENCES listas(id),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS categorias (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre TEXT NOT NULL,
+                usuario_id INTEGER NOT NULL,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS movimientos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha DATE NOT NULL,
+                descripcion TEXT,
+                valor REAL NOT NULL,
+                tipo TEXT,
+                usuario_id INTEGER NOT NULL,
+                categoria_id INTEGER,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS deudas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                descripcion TEXT,
+                persona TEXT,
+                usuario_id INTEGER NOT NULL,
+                monto_inicial REAL,
+                saldo REAL,
+                frecuencia TEXT,
+                estado TEXT,
+                fecha DATE,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                tipo TEXT,
+                movimiento_id INTEGER,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (movimiento_id) REFERENCES movimientos(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS prestamos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                descripcion TEXT,
+                persona TEXT,
+                usuario_id INTEGER NOT NULL,
+                monto_inicial REAL,
+                saldo REAL,
+                frecuencia TEXT,
+                estado TEXT,
+                fecha DATE,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                movimiento_id INTEGER,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (movimiento_id) REFERENCES movimientos(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS recargas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                metodo TEXT,
+                transaccion_id TEXT UNIQUE,
+                monto REAL,
+                estado TEXT,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS wallet_movimientos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                referencia_externa TEXT,
+                monto REAL,
+                tipo TEXT,
+                estado TEXT,
+                descripcion TEXT,
+                medio_pago TEXT,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS ideas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT,
+                descripcion TEXT,
+                categoria TEXT,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS agenda (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT NOT NULL,
+                descripcion TEXT,
+                fecha DATE NOT NULL,
+                hora TEXT,
+                usuario_id INTEGER NOT NULL,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS carrito_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                nombre TEXT NOT NULL,
+                precio REAL NOT NULL,
+                imagen TEXT,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+        """)
+
+        cursor.execute('PRAGMA table_info(tareas)')
+        columnas_tareas = [row[1] for row in cursor.fetchall()]
+        if 'estado' not in columnas_tareas:
+            cursor.execute("ALTER TABLE tareas ADD COLUMN estado TEXT DEFAULT 'pendiente'")
 
     conn.commit()
     cursor.close()
@@ -224,7 +435,10 @@ try:
     conn = get_db_connection()
     init_db()
     conn.close()
-    print("✅ Conectado a la base de datos SQLite correctamente.")
+    if app.config.get('DATABASE_URL'):
+        print("✅ Conectado a la base de datos PostgreSQL correctamente.")
+    else:
+        print("✅ Conectado a la base de datos SQLite correctamente.")
 except Exception as e:
     print(f"❌ Error conectando a la base de datos: {e}")
 
@@ -1025,11 +1239,19 @@ def formulario_registros():
         movimiento_id = None
 
         if tipo in ['ingreso', 'gasto']:
-            cursor.execute("""
-                INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
-            movimiento_id = cursor.lastrowid
+            if conn.is_postgres:
+                cursor.execute("""
+                    INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    RETURNING id
+                """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
+                movimiento_id = cursor.fetchone()['id']
+            else:
+                cursor.execute("""
+                    INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
+                movimiento_id = cursor.lastrowid
             conn.commit()
 
         if tipo == 'deuda':
@@ -1072,11 +1294,18 @@ def crear_categoria():
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO categorias (nombre, usuario_id, fecha_creacion) VALUES (?, ?, ?)",
-            (nombre, usuario_id, ahora)
-        )
-        nueva_categoria_id = cursor.lastrowid
+        if conn.is_postgres:
+            cursor.execute(
+                "INSERT INTO categorias (nombre, usuario_id, fecha_creacion) VALUES (?, ?, ?) RETURNING id",
+                (nombre, usuario_id, ahora)
+            )
+            nueva_categoria_id = cursor.fetchone()['id']
+        else:
+            cursor.execute(
+                "INSERT INTO categorias (nombre, usuario_id, fecha_creacion) VALUES (?, ?, ?)",
+                (nombre, usuario_id, ahora)
+            )
+            nueva_categoria_id = cursor.lastrowid
         conn.commit()
         cursor.close()
         conn.close()

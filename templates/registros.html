@@ -1,0 +1,815 @@
+{% extends "base.html" %}
+{% block titulo %}Tus registros{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<style>
+/* ═══════════════════════════════════════
+   Registros
+═══════════════════════════════════════ */
+.registros-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Header ── */
+.registros-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.registros-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ── Filtros ── */
+.filtros-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+}
+
+.filtros-bar label {
+    font-size: 11.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.filtro-input,
+.filtro-select {
+    padding: 7px 11px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.filtro-input:focus,
+.filtro-select:focus { border-color: var(--accent); }
+
+.filtro-select option { background: var(--bg-elevated); }
+
+.filtro-input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.6);
+    cursor: pointer;
+}
+
+.btn-filtrar {
+    padding: 7px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.btn-filtrar:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-mid);
+}
+
+/* ── Tabs de sección ── */
+.seccion-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    width: fit-content;
+}
+
+.boton-seccion {
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    background: none;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.boton-seccion:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.boton-seccion.activo {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: var(--accent-border);
+}
+
+/* ── Sección visible / oculta ── */
+.seccion { display: none; }
+.seccion.activa { display: block; }
+
+/* ── Widget tabla ── */
+.tabla-widget {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.tabla-widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.tabla-widget-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.tabla-print-link {
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color var(--transition);
+}
+
+.tabla-print-link:hover { color: var(--text-primary); }
+
+/* ── Tabla ── */
+.tabla-movimientos {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-movimientos th {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    padding: 8px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    text-align: left;
+}
+
+.tabla-movimientos td {
+    padding: 10px 18px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+}
+
+.tabla-movimientos tr:last-child td { border-bottom: none; }
+
+.tabla-movimientos tr:hover td {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+/* Fecha agrupa */
+.fecha-row td {
+    padding: 10px 18px 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    background: var(--bg-base);
+    cursor: default !important;
+}
+
+.fecha-row:hover td {
+    background: var(--bg-base) !important;
+    color: var(--text-muted) !important;
+}
+
+.tipo-ingreso { color: var(--green); }
+.tipo-gasto   { color: var(--red); }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.estado-pendiente { color: var(--amber); }
+.estado-pagado    { color: var(--green); }
+.estado-vencido   { color: var(--red); }
+.estado-otro      { color: var(--text-muted); }
+
+.num { font-family: var(--font-mono); }
+
+/* ── Botón abonar ── */
+.btn-abonar {
+    padding: 4px 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+}
+
+.btn-abonar:hover {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: transparent;
+}
+
+/* ── Ver más ── */
+.ver-mas-row td {
+    text-align: center;
+    padding: 14px;
+}
+
+.ver-mas-row a {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+.ver-mas-row a:hover { color: var(--accent); }
+
+/* ══ MODALES ══ */
+.modal-overlay-custom {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay-custom.open { display: flex; }
+
+.modal-box {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 28px 32px;
+    min-width: 320px;
+    max-width: 440px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-box h2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-box label {
+    font-size: 11.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.modal-box input[type="number"],
+.modal-box input[type="date"],
+.modal-box select {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.modal-box input:focus,
+.modal-box select:focus { border-color: var(--accent); }
+
+.modal-box p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.modal-box p strong {
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.btn-modal-confirm {
+    flex: 1;
+    padding: 10px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: opacity var(--transition);
+}
+
+.btn-modal-confirm:hover { opacity: 0.88; }
+
+.btn-modal-cancel {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn-modal-cancel:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* Modal impresión */
+.modal-impresion {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal detalles */
+#modal-detalles {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+}
+
+.modal-overlay {
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-contenido-base {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 28px 32px;
+    min-width: 320px;
+    max-width: 440px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal-contenido-base h2 {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-detalles-cerrar {
+    padding: 8px 18px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.modal-detalles-cerrar:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="registros-page">
+
+    <!-- Header -->
+    <div class="registros-header">
+        <h1>Mis registros</h1>
+    </div>
+
+    <!-- Filtros -->
+    <form method="GET" class="filtros-bar">
+        <label>Desde</label>
+        <input type="date" name="fecha_desde" class="filtro-input"
+               value="{{ request.args.get('fecha_desde', '') }}">
+
+        <label>Hasta</label>
+        <input type="date" name="fecha_hasta" class="filtro-input"
+               value="{{ request.args.get('fecha_hasta', '') }}">
+
+        <input type="hidden" name="seccion" value="{{ request.args.get('seccion', 'deudas') }}">
+
+        <label>Ordenar por</label>
+        <select name="ordenar" class="filtro-select">
+            <option value="fecha_desc" {% if request.args.get('ordenar') == 'fecha_desc' %}selected{% endif %}>Fecha (desc)</option>
+            <option value="fecha_asc"  {% if request.args.get('ordenar') == 'fecha_asc'  %}selected{% endif %}>Fecha (asc)</option>
+            <option value="valor_desc" {% if request.args.get('ordenar') == 'valor_desc' %}selected{% endif %}>Valor (mayor)</option>
+            <option value="valor_asc"  {% if request.args.get('ordenar') == 'valor_asc'  %}selected{% endif %}>Valor (menor)</option>
+        </select>
+
+        <button type="submit" formaction="{{ url_for('movimientos') }}" class="btn-filtrar">
+            <i class="fa-solid fa-filter"></i> Filtrar
+        </button>
+    </form>
+
+    <!-- Tabs -->
+    <div class="seccion-tabs">
+        <button type="button" id="btnIngresos"
+                class="boton-seccion {% if seccion == 'ingresos' %}activo{% endif %}"
+                onclick="cambiarSeccion('ingresos')">
+            Ingresos y gastos
+        </button>
+        <button type="button" id="btnDeudas"
+                class="boton-seccion {% if seccion == 'deudas' %}activo{% endif %}"
+                onclick="cambiarSeccion('deudas')">
+            Deudas
+        </button>
+        <button type="button" id="btnPrestamos"
+                class="boton-seccion {% if seccion == 'prestamos' %}activo{% endif %}"
+                onclick="cambiarSeccion('prestamos')">
+            Préstamos
+        </button>
+    </div>
+
+    <!-- ── Sección Ingresos ── -->
+    <div id="seccionIngresos" class="seccion {% if seccion == 'ingresos' %}activa{% endif %}">
+        <div class="tabla-widget">
+            <div class="tabla-widget-header">
+                <span class="tabla-widget-title">Ingresos y gastos</span>
+                <a href="#" class="tabla-print-link" onclick="abrirModalImpresion('ingresos')">
+                    <i class="fa-solid fa-print"></i> Imprimir
+                </a>
+            </div>
+            <table class="tabla-movimientos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Tipo</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fecha_legible, items in movimientos_agrupados.items() %}
+                    <tr class="fecha-row">
+                        <td colspan="4">{{ fecha_legible }}</td>
+                    </tr>
+                    {% for item in items %}
+                    <tr class="fila-modal-detalles"
+                        data-fecha="{{ item.fecha }}"
+                        data-tipo="{{ item.tipo }}"
+                        data-categoria="{{ item.categoria_nombre if item.categoria_nombre else 'Sin categoría' }}"
+                        data-valor="{{ '%.2f'|format(item.valor) }}"
+                        data-descripcion="{{ item.descripcion }}">
+                        <td class="num">{{ item.fecha }}</td>
+                        <td>{{ item.descripcion }}</td>
+                        <td class="{% if item.tipo == 'ingreso' %}tipo-ingreso{% else %}tipo-gasto{% endif %}">
+                            {{ item.tipo|capitalize }}
+                        </td>
+                        <td class="num {% if item.tipo == 'ingreso' %}tipo-ingreso{% else %}tipo-gasto{% endif %}">
+                            ${{ '%.2f'|format(item.valor) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+
+                    {% if mostrar_mas_movimientos %}
+                    <tr class="ver-mas-row">
+                        <td colspan="4">
+                            <a href="{{ url_for('registros', dias=dias_mostrar + 3, seccion='ingresos') }}">
+                                Ver más movimientos
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Sección Deudas ── -->
+    <div id="seccionDeudas" class="seccion {% if seccion == 'deudas' %}activa{% endif %}">
+        <div class="tabla-widget">
+            <div class="tabla-widget-header">
+                <span class="tabla-widget-title">Deudas</span>
+                <a href="#" class="tabla-print-link" onclick="abrirModalImpresion('deudas')">
+                    <i class="fa-solid fa-print"></i> Imprimir
+                </a>
+            </div>
+            <table class="tabla-movimientos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Monto</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fecha_legible, items in movimientos_agrupados.items() %}
+                    <tr class="fecha-row">
+                        <td colspan="4">{{ fecha_legible }}</td>
+                    </tr>
+                    {% for item in deudas if item.tipo in ['deuda', 'abono_deuda'] %}
+                    <tr class="fila-modal-detalles"
+                        data-fecha="{{ item.fecha }}"
+                        data-descripcion="{{ item.descripcion }}"
+                        data-valor="{{ '%.2f'|format(item.monto_inicial if item.monto_inicial is defined else 0) }}"
+                        data-tipo="{{ item.tipo }}"
+                        data-saldo="{{ '%.2f'|format(item.saldo if item.saldo is defined else 0) }}"
+                        data-estado="{{ item.estado if item.estado else 'desconocido' }}">
+                        <td class="num">{{ item.fecha }}</td>
+                        <td class="{{ 'estado-pendiente' if item.estado == 'pendiente' else 'estado-pagado' if item.estado == 'pagado' else 'estado-vencido' if item.estado == 'vencido' else 'estado-otro' }}">
+                            {{ item.estado|capitalize if item.estado else 'Desconocido' }}
+                        </td>
+                        <td class="num">
+                            {% if item.monto_inicial is defined %}${{ "%.2f"|format(item.monto_inicial) }}{% else %}-{% endif %}
+                        </td>
+                        <td>
+                            {% if item.saldo > 0 %}
+                            <button type="button" class="btn-abonar"
+                                    onclick="event.stopPropagation(); abrirModalAbonoDeuda({{ item.id }}, {{ item.saldo }})">
+                                Abonar
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+
+                    {% if mostrar_mas_movimientos %}
+                    <tr class="ver-mas-row">
+                        <td colspan="4">
+                            <a href="{{ url_for('registros', dias=dias_mostrar + 3, seccion='deudas') }}">
+                                Ver más
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── Sección Préstamos ── -->
+    <div id="seccionPrestamos" class="seccion {% if seccion == 'prestamos' %}activa{% endif %}">
+        <div class="tabla-widget">
+            <div class="tabla-widget-header">
+                <span class="tabla-widget-title">Préstamos</span>
+                <a href="#" class="tabla-print-link" onclick="abrirModalImpresion('prestamos')">
+                    <i class="fa-solid fa-print"></i> Imprimir
+                </a>
+            </div>
+            <table class="tabla-movimientos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Monto</th>
+                        <th>Saldo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fecha_legible, items in prestamos_agrupados.items() %}
+                    <tr class="fecha-row">
+                        <td colspan="5">{{ fecha_legible }}</td>
+                    </tr>
+                    {% for prestamo in items %}
+                    <tr class="fila-modal-detalles"
+                        data-tipo="prestamo"
+                        data-fecha="{{ prestamo.fecha }}"
+                        data-descripcion="{{ prestamo.descripcion }}"
+                        data-monto_inicial="{{ '%.2f'|format(prestamo.monto_inicial) }}"
+                        data-saldo="{{ '%.2f'|format(prestamo.saldo) }}"
+                        data-estado="{{ prestamo.estado }}">
+                        <td class="num">{{ prestamo.fecha }}</td>
+                        <td class="{{ 'estado-pendiente' if prestamo.estado == 'pendiente' else 'estado-pagado' if prestamo.estado == 'pagado' else 'estado-vencido' if prestamo.estado == 'vencido' else 'estado-otro' }}">
+                            {{ prestamo.estado|capitalize }}
+                        </td>
+                        <td class="num">${{ prestamo.monto_inicial }}</td>
+                        <td class="num">${{ '%.2f'|format(prestamo.saldo) }}</td>
+                        <td>
+                            {% if prestamo.saldo > 0 %}
+                            <button type="button" class="btn-abonar"
+                                    onclick="event.stopPropagation(); abrirModalAbono({{ prestamo.id }}, {{ prestamo.saldo }})">
+                                Abonar
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+
+                    {% if mostrar_mas_prestamos %}
+                    <tr class="ver-mas-row">
+                        <td colspan="5">
+                            <a href="{{ url_for('registros', dias=dias_mostrar + 3, seccion='prestamos') }}">
+                                Ver más
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══ Modal Abono Préstamo ══ -->
+<div id="modalAbono" class="modal-overlay-custom">
+    <div class="modal-box">
+        <h2>Abonar préstamo</h2>
+        <form method="POST" action="{{ url_for('abonar_prestamo') }}">
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="prestamo_id" id="abonoPrestamoId">
+            <div>
+                <label>Monto a abonar</label>
+                <input type="number" step="0.01" name="monto_abono" required>
+            </div>
+            <p>Saldo pendiente: <strong>$<span id="saldoPendienteModal"></span></strong></p>
+            <div class="modal-actions">
+                <button type="submit" class="btn-modal-confirm">Confirmar abono</button>
+                <button type="button" class="btn-modal-cancel" onclick="cerrarModalAbono()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ Modal Abono Deuda ══ -->
+<div id="modalAbonoDeuda" class="modal-overlay-custom">
+    <div class="modal-box">
+        <h2>Abonar deuda</h2>
+        <form method="POST" action="{{ url_for('abonar_deuda') }}">
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="deuda_id" id="abonoDeudaId">
+            <div>
+                <label>Monto a abonar</label>
+                <input type="number" step="0.01" name="monto_abono" required>
+            </div>
+            <p>Saldo pendiente: <strong>$<span id="saldoPendienteDeudaModal"></span></strong></p>
+            <div class="modal-actions">
+                <button type="submit" class="btn-modal-confirm">Confirmar abono</button>
+                <button type="button" class="btn-modal-cancel" onclick="cerrarModalAbonoDeuda()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ Modal Detalles ══ -->
+<div id="modal-detalles">
+    <div class="modal-overlay" id="overlay-detalles">
+        <div class="modal-contenido-base">
+            <h2>Detalles</h2>
+            <div id="modal-detalles-contenido-info"></div>
+            <div id="modal-detalles-certificado" style="margin-top:8px"></div>
+            <div style="text-align:right; margin-top:8px">
+                <button class="modal-detalles-cerrar" onclick="cerrarModalDetalles()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══ Modal Impresión ══ -->
+<div class="modal-impresion" id="modalImpresion">
+    <div class="modal-box">
+        <h2>Imprimir registros</h2>
+        <form id="formularioFiltroImpresion">
+            <input type="hidden" name="seccion" id="seccionFiltro">
+            <div>
+                <label>Fecha desde</label>
+                <input type="date" name="fecha_desde" id="fecha_desde" class="filtro-input" style="width:100%">
+            </div>
+            <div>
+                <label>Fecha hasta</label>
+                <input type="date" name="fecha_hasta" id="fecha_hasta" class="filtro-input" style="width:100%">
+            </div>
+            <div id="label-tipo" style="display:none">
+                <label>Tipo</label>
+                <select name="tipo" id="tipo" class="filtro-select" style="width:100%">
+                    <option value="">Todos</option>
+                    <option value="ingreso">Ingreso</option>
+                    <option value="gasto">Gasto</option>
+                </select>
+            </div>
+            <div id="label-estado" style="display:none">
+                <label>Estado</label>
+                <select name="estado" id="estado" class="filtro-select" style="width:100%">
+                    <option value="">Todos</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="pagado">Pagado</option>
+                    <option value="vencido">Vencido</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-modal-confirm">Imprimir</button>
+                <button type="button" class="btn-modal-cancel" onclick="cerrarModalImpresion()">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<iframe id="iframeImpresion" style="display:none" onload="imprimirDesdeIframe()"></iframe>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/registros.js') }}"></script>
+<script>
+/* Abrir/cerrar modales abono */
+function abrirModalAbono(id, saldo) {
+    document.getElementById('abonoPrestamoId').value = id;
+    document.getElementById('saldoPendienteModal').textContent = parseFloat(saldo).toFixed(2);
+    document.getElementById('modalAbono').classList.add('open');
+}
+function cerrarModalAbono() {
+    document.getElementById('modalAbono').classList.remove('open');
+}
+
+function abrirModalAbonoDeuda(id, saldo) {
+    document.getElementById('abonoDeudaId').value = id;
+    document.getElementById('saldoPendienteDeudaModal').textContent = parseFloat(saldo).toFixed(2);
+    document.getElementById('modalAbonoDeuda').classList.add('open');
+}
+function cerrarModalAbonoDeuda() {
+    document.getElementById('modalAbonoDeuda').classList.remove('open');
+}
+
+/* Cerrar al click fuera */
+['modalAbono','modalAbonoDeuda'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('open');
+    });
+});
+</script>
+{% endblock %}

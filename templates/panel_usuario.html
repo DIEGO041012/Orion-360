@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+{% block titulo %}Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<style>
+/* ═══════════════════════════════════════
+   Panel — Layout
+═══════════════════════════════════════ */
+.panel-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* ── Encabezado de bienvenida ── */
+.panel-welcome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.panel-welcome-left h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.panel-welcome-left p {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.panel-welcome-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-panel {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 400;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--transition);
+}
+
+.btn-panel:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-mid);
+}
+
+.btn-panel.primary {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: transparent;
+    font-weight: 500;
+}
+
+.btn-panel.primary:hover { opacity: 0.88; }
+
+/* ── Cards de resumen ── */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.summary-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card:hover {
+    border-color: var(--border);
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--card-accent, transparent);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.summary-card.income  { --card-accent: var(--green); }
+.summary-card.expense { --card-accent: var(--red); }
+.summary-card.debt    { --card-accent: var(--amber); }
+.summary-card.loan    { --card-accent: var(--blue); }
+
+.summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.summary-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+}
+
+.summary-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.summary-card.income  .summary-icon { background: var(--green-dim);  color: var(--green); }
+.summary-card.expense .summary-icon { background: var(--red-dim);    color: var(--red); }
+.summary-card.debt    .summary-icon { background: var(--amber-dim);  color: var(--amber); }
+.summary-card.loan    .summary-icon { background: var(--blue-dim);   color: var(--blue); }
+
+.summary-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.summary-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.summary-sub .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* ── Sección de dos columnas ── */
+.panel-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+/* ── Widget base ── */
+.widget {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.widget-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.widget-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.widget-link {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: color var(--transition);
+}
+
+.widget-link:hover { color: var(--text-primary); }
+
+.widget-body {
+    padding: 6px 0;
+}
+
+/* ── Tabla de movimientos ── */
+.mov-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mov-table td {
+    padding: 10px 18px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+}
+
+.mov-table tr:last-child td { border-bottom: none; }
+
+.mov-table tr:hover td {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.mov-desc {
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+}
+
+.mov-val {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.mov-val.pos { color: var(--green); }
+.mov-val.neg { color: var(--red); }
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: var(--radius-xs);
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.badge-green  { background: var(--green-dim);  color: var(--green); }
+.badge-red    { background: var(--red-dim);    color: var(--red); }
+.badge-amber  { background: var(--amber-dim);  color: var(--amber); }
+.badge-blue   { background: var(--blue-dim);   color: var(--blue); }
+
+/* ── Lista de tareas ── */
+.task-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: default;
+    transition: background var(--transition);
+}
+
+.task-item:last-child { border-bottom: none; }
+.task-item:hover { background: var(--bg-hover); }
+
+.task-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-mid);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task-check.done {
+    background: var(--green);
+    border-color: var(--green);
+}
+
+.task-check.done::after {
+    content: '';
+    width: 5px;
+    height: 3px;
+    border-left: 1.5px solid #000;
+    border-bottom: 1.5px solid #000;
+    transform: rotate(-45deg) translateY(-1px);
+}
+
+.task-text {
+    flex: 1;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-text.done {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.task-due {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+}
+
+/* ── Empty state ── */
+.empty-state {
+    padding: 28px 18px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .panel-bottom { grid-template-columns: 1fr; }
+    .panel-welcome { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+    .summary-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="panel-page">
+
+    <!-- Bienvenida -->
+    <div class="panel-welcome">
+        <div class="panel-welcome-left">
+            <h1>Buenos días, {{ current_user.nombre_usuario }} 👋</h1>
+            <p>Aquí tienes un resumen de tu situación financiera.</p>
+        </div>
+        <div class="panel-welcome-actions">
+            <a href="{{ url_for('registros') }}" class="btn-panel">
+                <i class="fa-solid fa-list"></i> Movimientos
+            </a>
+            <a href="{{ url_for('formulario_registros') }}" class="btn-panel primary">
+                <i class="fa-solid fa-plus"></i> Nuevo registro
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards resumen -->
+    <div class="summary-grid">
+
+        <div class="summary-card income">
+            <div class="summary-header">
+                <span class="summary-label">Ingresos</span>
+                <span class="summary-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
+            </div>
+            <div class="summary-value">${{ "%.2f"|format(total_ingresos) }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:var(--green)"></span> Este período
+            </div>
+        </div>
+
+        <div class="summary-card expense">
+            <div class="summary-header">
+                <span class="summary-label">Gastos</span>
+                <span class="summary-icon"><i class="fa-solid fa-arrow-trend-down"></i></span>
+            </div>
+            <div class="summary-value">${{ "%.2f"|format(total_gastos) }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:var(--red)"></span> Este período
+            </div>
+        </div>
+
+        <div class="summary-card debt">
+            <div class="summary-header">
+                <span class="summary-label">Deudas</span>
+                <span class="summary-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+            </div>
+            <div class="summary-value">{{ deudas_pendientes.total_deudas_pendientes }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:var(--amber)"></span>
+                Saldo ${{ "%.2f"|format(deudas_pendientes.saldo_deudas_pendientes or 0) }}
+            </div>
+        </div>
+
+        <div class="summary-card loan">
+            <div class="summary-header">
+                <span class="summary-label">Préstamos</span>
+                <span class="summary-icon"><i class="fa-solid fa-handshake"></i></span>
+            </div>
+            <div class="summary-value">{{ prestamos.total_prestamos }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:var(--blue)"></span>
+                Saldo ${{ "%.2f"|format(prestamos.saldo_prestamos or 0) }}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Sección inferior: movimientos + tareas -->
+    <div class="panel-bottom">
+
+        <!-- Últimos movimientos -->
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Últimos movimientos</span>
+                <a href="{{ url_for('registros') }}" class="widget-link">Ver todos →</a>
+            </div>
+            <div class="widget-body">
+                {% if ultimos_movimientos %}
+                <table class="mov-table">
+                    {% for mov in ultimos_movimientos %}
+                    <tr>
+                        <td>
+                            <span class="badge {% if mov.tipo == 'ingreso' %}badge-green{% else %}badge-red{% endif %}">
+                                {{ mov.tipo|capitalize }}
+                            </span>
+                        </td>
+                        <td class="mov-desc">{{ mov.descripcion }}</td>
+                        <td class="mov-val {% if mov.tipo == 'ingreso' %}pos{% else %}neg{% endif %}">
+                            {% if mov.tipo == 'ingreso' %}+{% else %}-{% endif %}${{ "%.2f"|format(mov.valor) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-inbox" style="font-size:22px;margin-bottom:8px;display:block;opacity:0.3"></i>
+                    No hay movimientos aún
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tareas pendientes -->
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Tareas pendientes</span>
+                <a href="{{ url_for('tareas') }}" class="widget-link">Ver todas →</a>
+            </div>
+            <div class="widget-body">
+                {% if tareas_pendientes %}
+                <div class="task-list">
+                    {% for tarea in tareas_pendientes %}
+                    <div class="task-item">
+                        <div class="task-check"></div>
+                        <span class="task-text">{{ tarea.titulo }}</span>
+                        {% if tarea.fecha_limite %}
+                        <span class="task-due">{{ tarea.fecha_limite }}</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fa-solid fa-check-circle" style="font-size:22px;margin-bottom:8px;display:block;opacity:0.3"></i>
+                    No hay tareas pendientes
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

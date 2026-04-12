@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block titulo %}Asistente Visual{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_asistente.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+{% endblock %}
+
+{% block contenido %}
+
+<div class="contenedor-asistente">
+  <div class="contenedor">
+    <h1>Asistente Virtual</h1>
+
+    <div id="chat"></div>
+    <script>
+      const NOMBRE_USUARIO = "{{ nombre }}";
+    </script>
+
+    <div id="imagenPrevioContainer">
+      <img id="imagenPrevio" src="" alt="">
+    </div>
+
+    <form id="formulario1" enctype="multipart/form-data" method="post">
+
+      <label for="imagen" class="icono-imagen" title="Subir imagen">
+        <i class="fas fa-photo-film"></i>
+      </label>
+      <input type="file" id="imagen" name="imagen" accept="image/*" style="display: none;">
+
+      <input type="text" id="consulta" name="consulta" placeholder="Escribe tu consulta...">
+
+      <input type="submit" value="Enviar">
+    </form>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/asistente.js') }}"></script>
+{% endblock %}

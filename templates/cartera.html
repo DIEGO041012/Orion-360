@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block titulo %}Cartera{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<style>
+.cartera-page {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    max-width: 860px;
+}
+
+.cartera-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cartera-header p {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ── Tarjeta SVG ── */
+.card-wrapper {
+    perspective: 1200px;
+}
+
+.credit-card {
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 1.586;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.credit-card:hover {
+    transform: translateY(-4px) rotateX(3deg);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+/* Decoración fondo */
+.credit-card::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,255,107,0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.credit-card::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: -40px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(96,165,250,0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+}
+
+.card-brand {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+
+.card-chip {
+    width: 36px;
+    height: 28px;
+    background: linear-gradient(135deg, #d4a847, #f5d27a, #c49a30);
+    border-radius: 5px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 1.5px;
+    padding: 3px;
+}
+
+.card-chip span {
+    background: rgba(0,0,0,0.25);
+    border-radius: 1px;
+}
+
+.card-middle {
+    position: relative;
+    z-index: 1;
+}
+
+.card-balance-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 4px;
+}
+
+.card-balance {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.card-currency {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.45);
+    margin-left: 4px;
+}
+
+.card-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+}
+
+.card-number {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.45);
+}
+
+.card-holder {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    text-align: right;
+}
+
+/* ── Panel de recarga ── */
+.recharge-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    max-width: 420px;
+}
+
+.recharge-panel h3 {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-mono);
+    transition: border-color var(--transition);
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--accent);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+}
+
+/* ── Botones de pago ── */
+.payment-methods {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-payment {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: var(--font-sans);
+}
+
+.btn-wompi {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.btn-wompi:hover {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: transparent;
+}
+
+.btn-paypal {
+    background: #003087;
+    color: #fff;
+    border-color: transparent;
+}
+
+.btn-paypal:hover {
+    background: #00408a;
+}
+
+.payment-methods form { flex: 1; display: flex; }
+.payment-methods form button { width: 100%; }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="cartera-page">
+
+    <div class="cartera-header">
+        <h1>Mi Cartera</h1>
+        <p>Gestiona tu saldo y realiza recargas.</p>
+    </div>
+
+    <!-- Tarjeta visual -->
+    <div class="card-wrapper">
+        <div class="credit-card">
+            <div class="card-top">
+                <span class="card-brand">Oryon 360</span>
+                <div class="card-chip">
+                    <span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+
+            <div class="card-middle">
+                <div class="card-balance-label">Saldo disponible</div>
+                <div class="card-balance">
+                    ${{ saldo }}<span class="card-currency">COP</span>
+                </div>
+            </div>
+
+            <div class="card-bottom">
+                <span class="card-number">**** **** **** 1122</span>
+                <span class="card-holder">{{ session['usuario']|default("Usuario")|upper }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de recarga -->
+    <div class="recharge-panel">
+        <h3>Recargar saldo</h3>
+
+        <div class="form-group">
+            <label for="monto" class="form-label">Monto a recargar</label>
+            <input
+                type="number"
+                min="1000"
+                id="monto"
+                class="form-input"
+                placeholder="Ej. 50000"
+                required
+            >
+        </div>
+
+        <div class="payment-methods">
+            <form action="{{ url_for('iniciar_wompi') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="monto" id="wompi_monto">
+                <button type="submit" class="btn-payment btn-wompi">
+                    <i class="fa-solid fa-bolt"></i> Wompi
+                </button>
+            </form>
+
+            <form action="{{ url_for('iniciar_paypal') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="monto" id="paypal_monto">
+                <button type="submit" class="btn-payment btn-paypal">
+                    <i class="fa-brands fa-paypal"></i> PayPal
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('monto').addEventListener('input', function () {
+    const v = this.value;
+    document.getElementById('wompi_monto').value = v;
+    document.getElementById('paypal_monto').value = v;
+});
+</script>
+{% endblock %}

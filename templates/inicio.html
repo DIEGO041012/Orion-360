@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block titulo %}Inicio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_inicio.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+{% endblock %}
+
+{% block contenido %}
+
+<div class="pagina-inicio-wrapper">
+  <!-- Video de fondo -->
+  <div class="logo-inicio">
+    <video autoplay muted playsinline>
+      <source src="{{ url_for('static', filename='img/logo.mp4') }}" type="video/mp4">
+      Tu navegador no soporta videos HTML5.
+    </video>
+  </div>
+
+  
+</div>
+
+{% endblock %}

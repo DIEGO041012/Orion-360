@@ -1,0 +1,335 @@
+/* Base y Contenedor Principal */
+#contenido-principal-tareas {
+  width: 100%;
+  height: 87vh; /* 🔹 Establece altura del área principal */
+  margin: 0 auto;
+  text-align: center;
+  padding: 20px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Título H2 */
+#contenido-principal-tareas h2 {
+  font-size: 2rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 60px;
+  letter-spacing: -0.02em;
+}
+
+/* Tablero Kanban (Flexbox) */
+.kanban-board {
+  display: flex;
+  flex-direction: row;
+  padding: 20px;
+  width: max-content; /* 🔹 Se expande según el número de columnas */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  scroll-behavior: smooth;
+  user-select: none;
+  align-items: flex-start; /* 🔥 Esto evita que todas las columnas se estiren igual al más alto */
+  gap: 20px;
+}
+
+.kanban-board::-webkit-scrollbar { display: none; /* WebKit */ }
+
+/* Columnas Kanban */
+/* Columnas Kanban */
+.kanban-column {
+  position: relative;
+  background-color: #ffffff; /* Fondo blanco */
+  color: #000000; /* Texto negro */
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  min-width: 220px;
+  min-height: 100px;
+  border-radius: 6px;
+  gap: 10px;
+  height: auto;
+  max-width: 280px;
+  overflow: hidden;
+  border: 1px solid #ddd; /* Opcional: borde suave para contraste */
+}
+
+
+/* Encabezado de columna */
+.kanban-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.kanban-column-header h3 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+/* Contenedor de Tareas */
+.kanban-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
+}
+.kanban-task.dragging {
+  opacity: 0.5;
+}
+
+.kanban-tasks.dragover {
+  border: 2px dashed #fff;
+}
+
+/* Tareas Individuales */
+.kanban-task {
+  padding: 10px 14px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  color: #000;
+  font-size: 0.95rem;
+}
+
+/* Formulario de tarea y lista */
+.add-task-form,
+#nueva-lista-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+  max-width: 100%;
+  align-items: stretch;
+  align-self: stretch;
+  background-color: transparent;
+}
+
+/* Botones Generales */
+.kanban-column button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  border-radius: 4px;
+  background-color: #4b0082;
+  color: #fff;
+  margin-top: 15px; /* Para "Añadir tarea" */
+}
+
+/* Placeholder Nueva Lista */
+.new-list-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f7;
+  color: #888;
+  border: 2px dashed #dcdcdc;
+  box-shadow: none;
+  cursor: default;
+  min-height: 180px;
+  border-radius: 0;
+  text-align: center;
+}
+
+/* Botón "Añadir lista" (en placeholder) */
+.new-list-placeholder .add-list-button {
+  background-color: #88888e; /* Color específico para este botón */
+  color: white;
+  padding: 14px 24px;
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin-top: 0; /* Anula el margin-top del botón genérico */
+}
+
+/* Formularios de Entrada (Inputs) */
+.add-task-form,
+#nueva-lista-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+  max-width: 200px; /* 🔹 Limita el ancho del formulario */
+  width: 100%;
+  align-items: stretch; /* 🔹 Para mantener alineación vertical */
+}
+
+.add-task-form input,
+#nueva-lista-form input {
+  padding: 12px 15px;
+  border: 1px solid #4a4a4d;
+  border-radius: 0;
+  background-color: #3a3a3c;
+  color: #f0f0f0;
+  font-size: 1rem;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%; /* ✅ Ya está bien, se ajusta al max-width del form */
+}
+
+.add-task-form input:focus,
+#nueva-lista-form input:focus {
+  outline: none;
+  border-color: #66666d;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(102, 102, 109, 0.2);
+}
+
+.add-task-form input::placeholder,
+#nueva-lista-form input::placeholder {
+  color: #aaaaaa;
+}
+
+.add-task-form button,
+#nueva-lista-form button {
+  padding: 12px 18px;
+  margin-top: 0;
+  background-color: #55555a;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  border-radius: 0;
+  width: 100%; /* 🔹 Igual al input */
+}
+
+.add-task-form button + button,
+#nueva-lista-form button + button {
+  margin-top: 8px;
+}
+
+.add-task-form button:hover,
+#nueva-lista-form button:hover {
+  background-color: #66666d;
+}
+
+
+
+/* Botón de Menú (tres puntos) */
+
+.dropdown-container-tareas {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu-tareas {
+  display: none;
+  position: absolute;
+  top: 35px; /* ajusta según diseño */
+  right: 0;
+  background-color: #ffff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  border-radius: 5px;
+  z-index: 1000;
+  padding: 10px;
+  min-width: 140px;
+  color: #000;
+}
+
+.dropdown-container-tareas.show .dropdown-menu-tareas {
+  display: block;
+}
+
+.dropdown-menu-tareas button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #000;
+  padding: 6px 10px;
+  border-radius: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-menu-tareas button:hover {
+  background-color: #f0f0f0;
+}
+
+
+
+
+/*--------------------------------- 
+------------Modales----------------
+-----------------------------------*/
+
+/* Modal básico */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999; /* Aumentado para asegurar prioridad */
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+}
+
+
+.modal-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 0;
+  min-width: 300px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content input {
+  width: 100%;
+  border-radius: 4px;
+  padding: 10px;
+  border: 1px solid #555;
+}
+
+/* Drag horizontal */
+.kanban-board {
+  cursor: grab;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  user-select: none;
+}
+.kanban-board:active {
+  cursor: grabbing;
+}
+
+
+
+.dropdown-container-tarea {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-container-tarea .dropdown-menu-tarea {
+  display: none;
+  position: absolute;
+  right: 0;
+  background: #222;
+  border-radius: 4px;
+  padding: 2px;
+  z-index: 10;
+}
+
+.dropdown-container-tarea.show .dropdown-menu-tarea {
+  display: block;
+}
+
+.dropdown-menu-tarea button {
+  display: block;
+  width: 100%;
+  padding: 5px;
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+}

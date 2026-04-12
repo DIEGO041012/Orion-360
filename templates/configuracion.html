@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block titulo %}Configuración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<style>
+.config-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 760px;
+}
+
+/* ── Header ── */
+.config-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 24px 28px;
+}
+
+.config-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.config-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-mid);
+    display: block;
+}
+
+.config-avatar-badge {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid var(--bg-surface);
+}
+
+.config-user-info h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.config-user-info p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* ── Panel ── */
+.config-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.config-panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.config-panel-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Inputs ── */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-group label {
+    font-size: 11.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+}
+
+.input-group input,
+.input-group select {
+    padding: 9px 13px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.input-group input:focus,
+.input-group select:focus { border-color: var(--accent); }
+
+.input-group input::placeholder { color: var(--text-muted); }
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+/* Foto upload */
+.foto-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition);
+    width: fit-content;
+}
+
+.foto-upload-label:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-mid);
+}
+
+/* ── Botones ── */
+.config-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 4px;
+}
+
+.btn-guardar {
+    padding: 10px 24px;
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: opacity var(--transition);
+}
+
+.btn-guardar:hover { opacity: 0.88; }
+
+.btn-cancelar {
+    padding: 10px 20px;
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btn-cancelar:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+@media (max-width: 600px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .config-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="config-page">
+
+    <!-- Mensajes flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div style="padding:12px 16px;border-radius:var(--radius-md);font-size:13px;
+                            background:{{ 'var(--green-dim)' if category == 'success' else 'var(--red-dim)' }};
+                            color:{{ 'var(--green)' if category == 'success' else 'var(--red)' }};
+                            border:1px solid {{ 'rgba(74,222,128,0.3)' if category == 'success' else 'rgba(248,113,113,0.3)' }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Header de perfil -->
+    <div class="config-header">
+        <div class="config-avatar-wrap">
+            <!-- FIX: era usuario.nombre_usuario (texto), debe ser usuario_foto (URL de imagen) -->
+            <img src="{{ usuario_foto }}" alt="Foto de perfil" class="config-avatar">
+            <div class="config-avatar-badge"></div>
+        </div>
+        <div class="config-user-info">
+            <h2>{{ current_user.nombre_usuario }}</h2>
+            <p>Gestiona tu información personal y preferencias de cuenta.</p>
+        </div>
+    </div>
+
+    <!-- Formulario de edición -->
+    <div class="config-panel">
+        <div class="config-panel-header">Información personal</div>
+        <div class="config-panel-body">
+
+            <!-- FIX: action apunta a la ruta real actualizar_usuario -->
+            <form id="formPerfil"
+                  action="{{ url_for('actualizar_usuario') }}"
+                  method="POST"
+                  enctype="multipart/form-data"
+                  onsubmit="return confirm('¿Guardar los cambios?')">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>Nombre de usuario</label>
+                        <input type="text" name="nombre"
+                               value="{{ current_user.nombre_usuario }}"
+                               placeholder="Tu nombre">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Email</label>
+                        <input type="email" name="email" placeholder="tu@email.com">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" placeholder="+57 300 000 0000">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Nueva contraseña</label>
+                        <input type="password" name="nueva_clave"
+                               placeholder="Dejar vacío para no cambiar">
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-top:4px">
+                    <label>Foto de perfil</label>
+                    <label class="foto-upload-label" for="fotoInput">
+                        <i class="fa-solid fa-image"></i> Seleccionar imagen
+                    </label>
+                    <input type="file" id="fotoInput" name="foto"
+                           accept="image/*" style="display:none">
+                    <span id="nombreFoto"
+                          style="font-size:12px;color:var(--text-muted);margin-top:4px"></span>
+                </div>
+
+                <div class="config-actions" style="margin-top:8px">
+                    <button type="submit" class="btn-guardar">
+                        <i class="fa-solid fa-check" style="margin-right:6px"></i>Guardar cambios
+                    </button>
+                    <button type="button" class="btn-cancelar"
+                            onclick="history.back()">Cancelar</button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Panel peligro -->
+    <div class="config-panel">
+        <div class="config-panel-header" style="color:var(--red)">Zona de peligro</div>
+        <div class="config-panel-body">
+            <p style="font-size:13px;color:var(--text-muted)">
+                Cerrar sesión en todos los dispositivos o eliminar tu cuenta.
+            </p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+
+                <!-- Formulario oculto de logout (POST para respetar CSRF) -->
+                <form id="form-logout" action="{{ url_for('cerrar_sesion') }}"
+                      method="POST" style="display:none">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+
+                <button onclick="document.getElementById('form-logout').submit()"
+                        style="padding:9px 18px;
+                               background:var(--red-dim);
+                               color:var(--red);
+                               border:1px solid rgba(248,113,113,0.3);
+                               border-radius:var(--radius-md);
+                               font-size:13px;
+                               cursor:pointer;
+                               transition:all 0.2s">
+                    <i class="fa-solid fa-right-from-bracket"
+                       style="margin-right:6px"></i>Cerrar sesión
+                </button>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* Mostrar nombre del archivo seleccionado */
+document.getElementById('fotoInput').addEventListener('change', function () {
+    const nombre = this.files[0] ? this.files[0].name : '';
+    document.getElementById('nombreFoto').textContent = nombre;
+});
+</script>
+{% endblock %}

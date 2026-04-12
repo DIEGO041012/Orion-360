@@ -1,0 +1,103 @@
+/* Contenedor principal */
+.detalle-container {
+    max-width: 1100px;
+    margin: 50px auto;
+    padding: 30px;
+    display: flex;
+    gap: 40px;
+    /* Fondo tipo glassmorphism */
+    background-color: rgba(255, 255, 255, 0.06);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    align-items: flex-start;
+    color: #fff;
+}
+
+/* Imagen del producto */
+.detalle-container img {
+    max-width: 400px;
+    width: 100%;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+    object-fit: cover;
+}
+
+/* Información del producto */
+.detalle-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.categoria-titulo {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 1px;
+    color: #555;
+    border-bottom: 2px solid #ddd;
+}
+
+.categoria-texto {
+    font-size: 1rem;
+    color: #777;
+}
+
+
+.detalle-info h2 {
+    font-size: 2rem;
+    color: #000;
+    margin-bottom: 10px;
+}
+/* Si quieres limitar la altura y poner scroll */
+.detalle-info .descripcion {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 8px; /* para que el scroll no tape texto */
+}
+.detalle-info p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #000000;
+    max-width: 100%;           /* Evita que se salga horizontalmente */
+    word-wrap: break-word;     /* Rompe palabras largas */
+    overflow-wrap: break-word; /* Compatibilidad extra */
+    white-space: normal;       /* Permite saltos de línea */
+}
+
+.detalle-info h3 {
+    font-size: 1.6rem;
+    color: #4cafef;
+    font-weight: bold;
+}
+
+/* Botón comprar */
+.btn-comprar {
+    background: linear-gradient(135deg, #ff6f61, #ff4b2b);
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-comprar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(255, 75, 43, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .detalle-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    .detalle-container img {
+        max-width: 100%;
+    }
+}

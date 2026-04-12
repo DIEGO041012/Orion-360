@@ -1,0 +1,105 @@
+body {
+  background-color: white;
+  font-family: 'Segoe UI', sans-serif;
+  color: black;
+  margin: 0;
+  padding: 0;
+}
+
+main.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 2rem;
+  border-radius: 12px;
+}
+
+h2 {
+  color: #4b0082;
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="file"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+button {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+/* Botón Siguiente */
+button[type="button"] {
+  background-color: #4b0082;
+  color: white;
+}
+
+button[type="button"]:hover {
+  background-color: #360060;
+}
+
+/* Botón Finalizar */
+button[type="submit"] {
+  background-color: black;
+  color: white;
+}
+
+button[type="submit"]:hover {
+  background-color: #333;
+}
+
+
+/* Animación de pasos */
+.form-step {
+  display: none;
+}
+
+.form-step.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
+}
+.form-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.form-nav button {
+  flex: 1;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  main.container {
+    padding: 1.5rem;
+  }
+
+  button {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+}

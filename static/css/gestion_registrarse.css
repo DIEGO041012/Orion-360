@@ -1,0 +1,137 @@
+/* Centrado total del contenido */
+main {
+  display: grid;
+  place-items: center;
+  min-height: 82vh;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, #0c1120 0%, #080b14 100%);
+}
+
+.register-container {
+  width: min(100%, 460px);
+  background-color: rgba(12, 17, 35, 0.96);
+  padding: 2rem;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 76px rgba(0, 0, 0, 0.32);
+}
+
+.register-container h2 {
+  color: #eef2ff;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.register-container form {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-group {
+  display: grid;
+  gap: 0.35rem;
+}
+
+label {
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+
+.form-control,
+input[type=email],
+input[type=password],
+input[type=text],
+input[type=file],
+select,
+textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background-color: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  font-size: 0.98rem;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+input[type=file] {
+  padding: 10px 12px;
+}
+
+.form-control:focus,
+input[type=email]:focus,
+input[type=password]:focus,
+input[type=text]:focus,
+select:focus,
+textarea:focus,
+input[type=file]:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 8px rgba(96, 165, 250, 0.14);
+  outline: none;
+}
+
+button,
+input[type=submit] {
+  width: 100%;
+  padding: 14px 18px;
+  background-color: #60a5fa;
+  color: #0f172a;
+  border-radius: 14px;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+button:hover,
+input[type=submit]:hover {
+  background-color: #93c5fd;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  margin: 1.25rem 0;
+}
+
+p.mt-3 {
+  margin-top: 0.5rem;
+  text-align: center;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+p.mt-3 a {
+  color: #7dd3fc;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+p.mt-3 a:hover {
+  text-decoration: underline;
+}
+
+ul.error-messages {
+  color: #fb7185;
+  margin: 0 0 1rem;
+  font-weight: 600;
+  list-style: none;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .register-container {
+    padding: 1.5rem;
+    border-radius: 24px;
+  }
+
+  .register-container h2 {
+    font-size: 1.6rem;
+  }
+}
+

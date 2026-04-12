@@ -17,9 +17,10 @@ class Config:
     POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD") or ""
     POSTGRES_DB = os.environ.get("POSTGRES_DB") or "orion"
     POSTGRES_PORT = int(os.environ.get("POSTGRES_PORT") or 5432)
+    DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    # SQLAlchemy Database URI para PostgreSQL
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///orion.db"  # Temporal: usando SQLite para demo
+    # SQLAlchemy Database URI para PostgreSQL o SQLite local
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL or f"sqlite:///orion.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Gemini API Key

@@ -1,0 +1,110 @@
+/* Contenedor general */
+.contenedor-dashboard {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 80vh;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Centro del contenido */
+.contenedor-centro {
+  background-color: #ffffff;
+  padding: 2rem 2.5rem;
+  border-radius: 12px;/* 
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Contenido del panel */
+.panel-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  color: #333;
+}
+
+/* Título */
+.panel-contenido h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  font-weight: bold;
+  color: #222;
+  text-align: center;
+}
+
+/* Tarjetas resumen */
+.tarjetas-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 2rem;
+}
+
+.tarjeta {
+  flex: 1 1 calc(20% - 1rem);
+  background: #f8f8f8;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  text-align: center;
+  min-width: 160px;
+  max-width: 100%;
+}
+
+.tarjeta h4 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  color: #444;
+}
+
+.tarjeta p {
+  font-size: 1rem;
+  color: #333;
+  margin: 0.3rem 0;
+}
+
+/* Secciones de listas */
+.seccion-lista {
+
+  background: #f8f8f8;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  width: 96%;
+  margin-bottom: 1.5rem;
+}
+
+.seccion-lista h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.8rem;
+  color: #333;
+}
+
+.seccion-lista ul {
+  padding-left: 1.2rem;
+  color: #555;
+}
+
+.seccion-lista li {
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+  .tarjeta {
+    flex: 1 1 calc(45% - 1rem);
+  }
+}
+
+@media (max-width: 600px) {
+  .tarjeta {
+    flex: 1 1 100%;
+  }
+}

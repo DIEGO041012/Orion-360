@@ -1,0 +1,65 @@
+/* Contenedor principal */
+.pagina-inicio-wrapper {
+  position: relative;
+  width: 100%;
+  height: 82vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Contenedor del logo */
+.logo-inicio {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.logo-inicio video {
+  max-width: 650px;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Botones */
+.botones-usuario {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 450px; /* ajusta según necesites */
+  z-index: 11;
+  position: relative;
+}
+
+.botones-usuario a {
+  padding: 12px 24px;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/* Estilo oscuro general */
+body.pagina-inicio {
+  background-color: #111;
+  color: #fff;
+}
+
+/* Botón primario - azul */
+.btn-primario {
+  background-color: #000;
+  color: white;
+}
+
+
+/* Botón secundario - verde */
+.btn-secundario {
+  background-color: #000;
+  color: white;
+}
+

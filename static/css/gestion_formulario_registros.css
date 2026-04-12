@@ -1,0 +1,326 @@
+/* ══════════════════════════════════════════════════════════
+   gestion_formulario_registros.css — ORYON
+   Adaptado al tema oscuro del sistema de diseño
+══════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════
+   CONTENEDOR PRINCIPAL
+══════════════════════════════════════════════════════════ */
+
+.formulario-contenedor {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 90vh;
+    padding: 40px 16px;
+}
+
+.formulario-contenedor form:not(#formCrearCategoria) {
+    width: 100%;
+    max-width: 500px;
+    padding: 2rem 2.5rem 2.5rem;
+    border-radius: var(--radius-xl, 16px);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   ENCABEZADO
+══════════════════════════════════════════════════════════ */
+
+.formulario-contenedor h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 6px 0;
+    letter-spacing: -0.02em;
+}
+
+.btn-ver-todos {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--accent);
+    text-decoration: none;
+    margin-bottom: 28px;
+    font-weight: 500;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}
+
+.btn-ver-todos:hover { opacity: 1; }
+
+
+/* ══════════════════════════════════════════════════════════
+   LABELS
+══════════════════════════════════════════════════════════ */
+
+label {
+    display: block;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   INPUTS / SELECTS
+══════════════════════════════════════════════════════════ */
+
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-sans, inherit);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.form-control:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.form-control::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+/* Select con flecha personalizada */
+select.form-control {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+
+/* Input de fecha — fuerza tema oscuro del picker */
+input[type="date"].form-control {
+    color-scheme: dark;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   CAMPO CATEGORÍA
+══════════════════════════════════════════════════════════ */
+
+.categoria-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.categoria-actions .form-control {
+    flex: 1;
+    margin: 0;
+}
+
+.categoria-actions > button {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: var(--radius-md, 8px);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 0;
+}
+
+.categoria-actions > button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-mid);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   CAMPO PERSONA — animación de entrada
+══════════════════════════════════════════════════════════ */
+
+#persona-container {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.35s ease;
+}
+
+#persona-container.visible {
+    max-height: 120px;
+    opacity: 1;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   BOTÓN SUBMIT
+══════════════════════════════════════════════════════════ */
+
+button[type="submit"] {
+    width: 100%;
+    padding: 11px;
+    margin-top: 28px;
+    border: none;
+    border-radius: var(--radius-md, 8px);
+    background: var(--accent);
+    color: var(--accent-text, #fff);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans, inherit);
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+button[type="submit"]:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+
+button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   MODAL — CREAR CATEGORÍA
+══════════════════════════════════════════════════════════ */
+
+.modal-categoria {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.modal-categoria.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-categoria-contenido {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    padding: 2rem 2.5rem 2.5rem;
+    border-radius: var(--radius-xl, 16px);
+    width: 380px;
+    max-width: 92vw;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    position: relative;
+    animation: modalEntrada 0.2s ease;
+}
+
+@keyframes modalEntrada {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+.modal-categoria-contenido h3 {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+/* Form dentro del modal — aislado del form principal */
+#formCrearCategoria {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#formCrearCategoria label {
+    margin-top: 0;
+    color: var(--text-muted);
+}
+
+#formCrearCategoria input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md, 8px);
+    font-size: 14px;
+    font-family: var(--font-sans, inherit);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+#formCrearCategoria input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.modal-actions {
+    margin-top: 20px;
+}
+
+.modal-actions button[type="submit"] {
+    margin-top: 0;
+}
+
+.cerrar-modal {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    ;
+}
+
+.cerrar-modal:hover { color: var(--text-primary); }
+
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════ */
+
+@media (max-width: 560px) {
+    .formulario-contenedor {
+        padding: 20px 12px;
+    }
+
+    .formulario-contenedor form:not(#formCrearCategoria) {
+        padding: 1.5rem;
+    }
+
+    .categoria-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

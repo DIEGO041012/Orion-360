@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Encabezado fijo con logo y texto Orion 360 */
+    .header {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      text-align: right;
+      z-index: 1000;
+    }
+
+    .header .nombre {
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+      font-family: 'Arial Black', Arial, sans-serif;
+      display: block;
+      margin-top: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px; /* espacio para header */
+    }
+
+    th, td {
+      border: 1px solid #000;
+      padding: 1.5px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="nombre">Orion 360</span>
+  </div>
+
+  <h2 style="margin-top: 45px;">
+    {% if seccion == 'ingresos' %}
+      Movimientos: Ingresos y/o Gastos
+    {% else %}
+      Movimientos: Deudas y/o Préstamos
+    {% endif %}
+  </h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Descripción</th>
+        <th>Valor</th>
+        <th>Tipo</th>
+        {% if seccion != 'ingresos' %}
+          <th>Saldo Pendiente</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in movimientos %}
+      <tr>
+        <td>{{ item.fecha }}</td>
+        <td>{{ item.descripcion }}</td>
+        <td>${{ "%.2f"|format(item.valor or 0) }}</td>
+        <td>{{ item.tipo|replace('_', ' ')|capitalize }}</td>
+        {% if seccion != 'ingresos' %}
+          <td>
+            {% if item.saldo is defined and item.saldo is not none %}
+              ${{ "%.2f"|format(item.saldo) }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</body>
+</html>
+

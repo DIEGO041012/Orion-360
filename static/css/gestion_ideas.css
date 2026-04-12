@@ -1,0 +1,169 @@
+:root {
+  --bg: #0f172a;
+  --card: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.08);
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --primary: #3b82f6;
+  --accent: #10b981;
+}
+
+.ideas-page {
+  max-width: 900px;
+  margin: auto;
+  padding: 2rem;
+  color: var(--text);
+}
+
+/* TITULO */
+.ideas-page h2 {
+  margin-bottom: 1rem;
+}
+
+/* SECCIONES */
+.inspiracion,
+.form-idea,
+.lista-ideas {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+/* BOTON SUGERENCIA */
+.inspiracion button {
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+.inspiracion button:hover {
+  background: #2563eb;
+}
+
+/* CAJA SUGERENCIA */
+.sugerencia-box {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  font-size: 14px;
+}
+
+/* FORMULARIO */
+.form-idea {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-idea input,
+.form-idea textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+}
+
+.form-idea textarea {
+  resize: none;
+}
+
+.form-idea button {
+  background: var(--accent);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+}
+
+.form-idea button:hover {
+  background: #059669;
+}
+
+/* ALERTAS */
+.alert {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.alert-success {
+  background: rgba(74,222,128,0.1);
+  color: #4ade80;
+}
+
+.alert-danger {
+  background: rgba(248,113,113,0.1);
+  color: #f87171;
+}
+
+/* LISTA IDEAS */
+.lista-ideas h3 {
+  margin-bottom: 10px;
+}
+
+.idea-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.idea-item:last-child {
+  border-bottom: none;
+}
+
+.idea-item strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.idea-item p {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* CATEGORIA */
+.categoria {
+  font-size: 12px;
+  color: var(--primary);
+}
+
+/* BOTONES */
+.acciones {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .ideas-page {
+    padding: 1rem;
+  }
+}

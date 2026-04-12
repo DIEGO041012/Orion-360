@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Certificado de {{ 'Paz y Salvo' if movimiento.saldo == 0 else 'Deuda' }}</title>
+  <style>
+    body {
+      font-family: "Arial", sans-serif;
+      font-size: 12pt;
+      padding: 40px;
+      position: relative;
+    }
+
+    .marca-agua {
+      position: absolute;
+      top: 35%;
+      width: 300px;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+    }
+
+    .contenido {
+      position: relative;
+      z-index: 1;
+    }
+
+    .titulo {
+      text-align: center;
+      font-size: 16pt;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-top: 10px;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .fecha {
+      font-style: italic;
+      margin-top: 20px;
+    }
+
+    .firma {
+      margin-top: 40px;
+      text-align: right;
+    }
+
+    .firma p {
+      margin: 3px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Marca de agua (usa PNG) -->
+  <img src="{{ url_for('static', filename='img/logo.png') }}" class="marca-agua" alt="Logo">
+
+  <div class="contenido">
+    <div class="titulo">
+      Certificado de {{ 'Paz y Salvo' if movimiento.saldo == 0 else 'Deuda' }}
+    </div>
+
+    <p>
+        Por medio del presente documento, se certifica que la persona <strong>{{ movimiento.persona }}</strong>
+        {{ 'ha saldado completamente' if movimiento.saldo == 0 else 'mantiene una deuda pendiente' }}
+        correspondiente al préstamo descrito como <strong>"{{ movimiento.descripcion }}"</strong>,
+        emitido por <strong>{{ prestamista.nombre_usuario }}</strong>, con un monto inicial de
+        <strong>${{ '%.2f' | format(movimiento.monto_inicial) }}</strong> y con un saldo actual de
+        <strong>${{ '%.2f' | format(movimiento.saldo) }}</strong>. La fecha de emisión del préstamo fue el
+        <strong>{{ movimiento.fecha.strftime('%d/%m/%Y') }}</strong>.
+    </p>
+
+
+    <p class="fecha">
+      Emitido el día {{ ahora.strftime('%d/%m/%Y') }}.
+    </p>
+
+    <div class="firma">
+      <p>______________________________</p>
+      <p><strong>Firma autorizada</strong></p>
+      <p>{{ prestamista.nombre_usuario }}</p>
+    </div>
+  </div>
+
+</body>
+</html>
