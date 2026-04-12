@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment
+.env
+.env.local
+venv/
+.venv/
+
+# SQLite database
+*.db
+orion.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# Python packaging
+dist/
+build/
+*.egg-info/
+
+# Static uploads
+static/uploads/
+
+# Logs
+*.log

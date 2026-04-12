@@ -1,0 +1,15 @@
+Flask
+requests-oauthlib
+Flask-Dance
+python-dotenv
+Flask-Login
+Flask-WTF
+Flask-Cors
+WTForms
+xhtml2pdf
+psycopg2-binary
+Werkzeug
+gunicorn
+google-generativeai
+Pillow
+cloudinary
