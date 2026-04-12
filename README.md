@@ -1,4 +1,4 @@
-# LifePilot
+# Orion 360
 
 Aplicación Flask para gestión personal con tareas, agenda, finanzas y asistente.
 
@@ -33,3 +33,4 @@ gunicorn app:app
 
 - Actualmente la app usa SQLite local (`orion.db`), que en Render no es persistente.
 - Para producción, se recomienda usar PostgreSQL o una base de datos externa.
+# Orion-360
