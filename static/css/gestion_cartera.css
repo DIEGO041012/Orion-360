@@ -3,20 +3,22 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    flex-direction: row; /* 👈 IMPORTANTE */
+    flex-wrap: nowrap;   /* 👈 evita que bajen */
+    
     width: 100%;
     min-height: 90vh;
     padding: 60px;
     gap: 40px;
+
     background-color: #f0f2f5;
-    box-sizing: border-box;
 }
 
 /* === TARJETA MÁS GRANDE === */
 .creditcard {
-    width: 400px;
+    flex: 2; /* ocupa más espacio */
     display: flex;
     justify-content: center;
-    align-items: center;
 }
 
 .creditcard .front svg {
@@ -29,13 +31,9 @@
 }
 
 /* === FORMULARIO MÁS PEQUEÑO === */
-.recharge-panel {
-    flex: 0 0 25%;
-    max-width: 25%;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+recharge-panel {
+    flex: 1; /* más pequeño */
+    max-width: 350px;
 }
 
 .recharge-panel h3 {

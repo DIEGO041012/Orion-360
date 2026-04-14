@@ -8,7 +8,8 @@
     display: flex;
     flex-direction: column;
     gap: 28px;
-    max-width: 860px;
+    max-width: 1000px;
+    margin: 0 auto; /* centra el bloque general sin afectar el título */
 }
 
 .cartera-header h1 {
@@ -25,7 +26,9 @@
 
 /* ── Tarjeta SVG ── */
 .card-wrapper {
-    perspective: 1200px;
+    flex: 1;
+    display: flex;
+    justify-content: center;
 }
 
 .credit-card {
@@ -161,18 +164,21 @@
 
 /* ── Panel de recarga ── */
 .recharge-panel {
+    flex: 1;
+    max-width: 420px;
+    width: 100%; /* 🔥 importante */
+
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    padding: 24px 28px;
-    max-width: 420px;
-}
 
-.recharge-panel h3 {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 18px;
+    padding: 24px 28px; /* 🔥 mismo estilo que tarjeta */
+
+    margin: 0 auto;
+}
+.recharge-panel {
+    flex: 1;
+    max-width: 420px;
 }
 
 .form-group {
@@ -289,7 +295,7 @@
 
             <div class="card-bottom">
                 <span class="card-number">**** **** **** 1122</span>
-                <span class="card-holder">{{ session['usuario']|default("Usuario")|upper }}</span>
+                <span class="card-holder">{{ current_user.nombre_usuario|default("Usuario")|upper }}</span>
             </div>
         </div>
     </div>
