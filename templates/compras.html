@@ -6,31 +6,42 @@
 {% endblock %}
 
 {% block contenido %}
+
 <div class="container-principal">
+
     {% for tienda, productos in tiendas_productos.items() %}
     <div class="tienda-section">
-        <h3>{{ tienda }}</h3>
+        <div class="tienda-header">
+            <h3>{{ tienda }}</h3>
+        </div>
+
         <div class="productos-slider">
             {% for producto in productos %}
             <div class="producto-card">
-                <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}">
+
+                <div class="producto-img">
+                    <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}">
+                </div>
+
                 <div class="producto-info">
                     <h5>{{ producto.nombre }}</h5>
                     <p class="precio">${{ producto.precio }}</p>
 
-                    <!-- Botón Ver más -->
-                    <a href="{{ url_for('producto_detalle', tienda=producto.tienda, nombre=producto.nombre) }}" 
-                    class="btn-ver-mas">Ver más</a>
+                    <div class="acciones">
+                        <a href="{{ url_for('producto_detalle', tienda=producto.tienda, nombre=producto.nombre) }}" 
+                           class="btn-ver-mas">Ver</a>
 
-                    <!-- Botón Comprar -->
-                    <a href="#" class="btn-comprar">Comprar</a>
+                        <a href="#" class="btn-comprar">Comprar</a>
+                    </div>
                 </div>
-            </div>
 
+            </div>
             {% endfor %}
         </div>
     </div>
     {% endfor %}
+
 </div>
+
 {% endblock %}
 

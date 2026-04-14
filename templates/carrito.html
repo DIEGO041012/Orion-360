@@ -4,19 +4,46 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_carrito.css') }}">
 {% endblock %}
 {% block contenido %}
+
 <h2>Tu Carrito</h2>
+
 {% if carrito %}
-    <ul class="carrito-lista">
-        {% for item in carrito %}
-        <li>
-            <img src="{{ item.imagen }}" alt="{{ item.nombre }}" width="80">
-            {{ item.nombre }} - ${{ item.precio }}
-            <a href="{{ url_for('eliminar_del_carrito', item_id=item.get('id', loop.index0)) }}">❌</a>
-        </li>
-        {% endfor %}
-    </ul>
+<ul class="carrito-lista">
+
+    {% for item in carrito %}
+    <li class="carrito-item">
+
+        <img src="{{ item.imagen }}" alt="{{ item.nombre }}">
+
+        <div class="carrito-info">
+            <span class="nombre">{{ item.nombre }}</span>
+            <span class="precio">$ {{ item.precio }}</span>
+        </div>
+
+        <!-- CONTROLES DE CANTIDAD -->
+        <div class="cantidad-control">
+            <a href="#" class="btn-cantidad">−</a>
+            <span>{{ item.cantidad if item.cantidad else 1 }}</span>
+            <a href="#" class="btn-cantidad">+</a>
+        </div>
+
+        <!-- ELIMINAR -->
+        <a href="{{ url_for('eliminar_del_carrito', item_id=item.get('id', loop.index0)) }}" 
+           class="btn-eliminar">🗑</a>
+
+    </li>
+    {% endfor %}
+
+</ul>
+
+<div class="carrito-footer">
     <h3>Total: ${{ total }}</h3>
+
+    <button class="btn-pagar">Pagar</button>
+</div>
+
 {% else %}
-    <p>Tu carrito está vacío</p>
+<p>Tu carrito está vacío</p>
 {% endif %}
+
 {% endblock %}

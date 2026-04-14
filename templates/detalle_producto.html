@@ -6,26 +6,54 @@
 {% endblock %}
 
 {% block contenido %}
-<div class="detalle-container">
-    <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}">
-    <div class="detalle-info">
-        <h2>{{ producto.nombre }}</h2>
-        <p class="descripcion">{{ producto.descripcion }}</p>
 
-        
-        <h4 class="categoria-titulo">Categoría</h4>
-        <p class="categoria-texto">{{ producto.categoria }}</p>
-        
-        <h3>${{ producto.precio }}</h3>
-        <form action="{{ url_for('agregar_al_carrito') }}" method="POST">
-    {{ csrf_token() }}
-    <input type="hidden" name="nombre" value="{{ producto.nombre }}">
-    <input type="hidden" name="precio" value="{{ producto.precio }}">
-    <input type="hidden" name="imagen" value="{{ producto.imagen }}">
-    <button type="submit" class="btn-comprar">Agregar al carrito</button>
-</form>
+<div class="detalle-wrapper">
+
+    <div class="detalle-container">
+
+        <!-- IMAGEN -->
+        <div class="detalle-img">
+            <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}">
+        </div>
+
+        <!-- INFO -->
+        <div class="detalle-info">
+
+            <span class="badge-categoria">{{ producto.categoria }}</span>
+
+            <h2>{{ producto.nombre }}</h2>
+
+            <p class="descripcion">
+                {{ producto.descripcion }}
+            </p>
+
+            <div class="precio-box">
+                <span class="precio">${{ producto.precio }}</span>
+            </div>
+
+            <!-- ACCIONES -->
+            <div class="acciones">
+
+                <form action="{{ url_for('agregar_al_carrito') }}" method="POST">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <input type="hidden" name="nombre" value="{{ producto.nombre }}">
+                    <input type="hidden" name="precio" value="{{ producto.precio }}">
+                    <input type="hidden" name="imagen" value="{{ producto.imagen }}">
+
+                    <button type="submit" class="btn-comprar">
+                        🛒 Agregar al carrito
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
 
     </div>
+
 </div>
 
 {% endblock %}

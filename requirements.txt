@@ -13,3 +13,9 @@ gunicorn
 google-generativeai
 Pillow
 cloudinary
+
+# extras importantes
+email-validator
+reportlab
+html5lib
+six
