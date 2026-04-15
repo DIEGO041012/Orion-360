@@ -43,6 +43,7 @@ sqlite3.register_adapter(Decimal, float)
 
 app = Flask(__name__)
 app.config.from_object(Config)
+print("DATABASE_URL:", app.config.get("DATABASE_URL"))
 
 CORS(app)
 csrf = CSRFProtect(app)
@@ -432,15 +433,20 @@ def init_db():
 
 # Verificar conexión
 try:
+    db_url = app.config.get('DATABASE_URL')
+
     conn = get_db_connection()
     init_db()
     conn.close()
-    if app.config.get('DATABASE_URL'):
-        print("✅ Conectado a la base de datos PostgreSQL correctamente.")
+
+    if db_url:
+        print("✅ Conectado a PostgreSQL (Neon) correctamente.")
     else:
-        print("✅ Conectado a la base de datos SQLite correctamente.")
+        print("✅ Conectado a SQLite correctamente.")
+
 except Exception as e:
-    print(f"❌ Error conectando a la base de datos: {e}")
+    print("❌ Error conectando a la base de datos")
+    print("Detalle:", str(e))
 
 
 # ══════════════════════════════════════════════════════════
@@ -1597,57 +1603,98 @@ def estadisticas_data():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Gráfica 1: Ingresos y Gastos por fecha
-    cursor.execute("""
-        SELECT fecha,
-            SUM(CASE WHEN tipo = 'ingreso' THEN valor ELSE 0 END) AS ingreso,
-            SUM(CASE WHEN tipo = 'gasto'   THEN valor ELSE 0 END) AS gasto
-        FROM movimientos WHERE usuario_id = ?
-        GROUP BY fecha ORDER BY fecha
-    """, (current_user.id,))
-    movimientos_raw = cursor.fetchall()
+    try:
+        # ═══════════════════════════════
+        # Gráfica 1: Ingresos y Gastos
+        # ═══════════════════════════════
+        cursor.execute("""
+            SELECT fecha,
+                SUM(CASE WHEN tipo = 'ingreso' THEN valor ELSE 0 END) AS ingreso,
+                SUM(CASE WHEN tipo = 'gasto'   THEN valor ELSE 0 END) AS gasto
+            FROM movimientos
+            WHERE usuario_id = ?
+            GROUP BY fecha
+            ORDER BY fecha
+        """, (current_user.id,))
+        movimientos_raw = cursor.fetchall()
 
-    # FIX: SQLite devuelve fechas como string — usar str()[:10] en lugar de .strftime()
-    movimientos_data = [
-        {'fecha': str(f[0])[:10], 'ingreso': f[1] or 0, 'gasto': f[2] or 0}
-        for f in movimientos_raw
-    ]
+        movimientos_data = [
+            {
+                'fecha': str(f[0])[:10],
+                'ingreso': float(f[1] or 0),
+                'gasto': float(f[2] or 0)
+            }
+            for f in movimientos_raw
+        ]
 
-    # Gráfica 2: Deudas por persona
-    cursor.execute("""
-        SELECT persona, SUM(saldo) as total_saldo
-        FROM deudas WHERE usuario_id = ? GROUP BY persona
-    """, (current_user.id,))
-    deudas = [{'persona': d[0], 'total_saldo': float(d[1])} for d in cursor.fetchall()]
+        # ═══════════════════════════════
+        # Gráfica 2: Deudas
+        # ═══════════════════════════════
+        cursor.execute("""
+            SELECT persona, SUM(saldo) as total_saldo
+            FROM deudas
+            WHERE usuario_id = ?
+            GROUP BY persona
+        """, (current_user.id,))
+        deudas = [
+            {'persona': d[0], 'total_saldo': float(d[1] or 0)}
+            for d in cursor.fetchall()
+        ]
 
-    # Gráfica 3: Préstamos por persona
-    cursor.execute("""
-        SELECT persona, COUNT(*) as cantidad, SUM(monto_inicial) as monto_total
-        FROM prestamos WHERE usuario_id = ? GROUP BY persona
-    """, (current_user.id,))
-    prestamos = [{'persona': p[0], 'cantidad': p[1], 'monto_total': p[2]} for p in cursor.fetchall()]
+        # ═══════════════════════════════
+        # Gráfica 3: Préstamos
+        # ═══════════════════════════════
+        cursor.execute("""
+            SELECT persona, COUNT(*) as cantidad, SUM(monto_inicial) as monto_total
+            FROM prestamos
+            WHERE usuario_id = ?
+            GROUP BY persona
+        """, (current_user.id,))
+        prestamos = [
+            {
+                'persona': p[0],
+                'cantidad': int(p[1] or 0),
+                'monto_total': float(p[2] or 0)
+            }
+            for p in cursor.fetchall()
+        ]
 
-    # Gráfica 4: Tareas por estado
-    cursor.execute("""
-        SELECT
-            CASE
-                WHEN estado = 'completada' THEN 'completada'
-                WHEN fecha_limite IS NOT NULL AND fecha_limite < CURRENT_DATE THEN 'vencida'
-                ELSE COALESCE(estado, 'pendiente')
-            END AS estado,
-            COUNT(*) AS cantidad
-        FROM tareas WHERE usuario_id = ? GROUP BY estado
-    """, (current_user.id,))
-    tareas = [{'estado': t[0], 'cantidad': t[1]} for t in cursor.fetchall()]
-    cursor.close()
-    conn.close()
+        # ═══════════════════════════════
+        # Gráfica 4: Tareas (FIX POSTGRES)
+        # ═══════════════════════════════
+        cursor.execute("""
+            SELECT estado, COUNT(*) as cantidad
+            FROM (
+                SELECT
+                    CASE
+                        WHEN estado = 'completada' THEN 'completada'
+                        WHEN fecha_limite IS NOT NULL AND fecha_limite < CURRENT_DATE THEN 'vencida'
+                        ELSE COALESCE(estado, 'pendiente')
+                    END AS estado
+                FROM tareas
+                WHERE usuario_id = ?
+            ) sub
+            GROUP BY estado
+        """, (current_user.id,))
+        tareas = [
+            {'estado': t[0], 'cantidad': int(t[1] or 0)}
+            for t in cursor.fetchall()
+        ]
 
-    return jsonify({
-        'movimientos': movimientos_data,
-        'deudas': deudas,
-        'prestamos': prestamos,
-        'tareas': tareas
-    })
+        return jsonify({
+            'movimientos': movimientos_data,
+            'deudas': deudas,
+            'prestamos': prestamos,
+            'tareas': tareas
+        })
+
+    except Exception as e:
+        print("❌ Error en estadísticas:", e)
+        return jsonify({'error': str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()    
 
 
 # ══════════════════════════════════════════════════════════
