@@ -13,7 +13,7 @@ from services import tiendas
 from services.tiendas import obtener_productos_por_tienda
 from xhtml2pdf import pisa
 from collections import defaultdict
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import json
 import sqlite3
 import psycopg2        # type: ignore
@@ -566,6 +566,19 @@ def to_date(val):
     return None
 
 
+# 👇 PEGA ESTO AQUÍ 👇
+def to_decimal(valor):
+    """
+    Convierte float, int, str o Decimal a Decimal de forma segura.
+    Evita mezclar float con Decimal en operaciones matemáticas.
+    """
+    if valor is None:
+        return Decimal('0')
+    if isinstance(valor, Decimal):
+        return valor
+    return Decimal(str(valor))
+
+
 def formatear_fecha_humana(fecha):
     """Devuelve 'Hoy', 'Ayer', nombre del día o dd/mm/yyyy."""
     hoy = date.today()
@@ -1064,64 +1077,144 @@ def eliminar_lista():
 # MOVIMIENTOS
 # ══════════════════════════════════════════════════════════
 
+
 @app.route('/agenda', methods=['GET', 'POST'])
 @login_required
 def agenda():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if request.method == 'POST':
-        titulo = request.form.get('titulo')
-        descripcion = request.form.get('descripcion')
-        fecha = request.form.get('fecha')
-        hora = request.form.get('hora') or ''
+    try:
+        if request.method == 'POST':
+            titulo = (request.form.get('titulo') or '').strip()
+            descripcion = (request.form.get('descripcion') or '').strip()
+            fecha = (request.form.get('fecha') or '').strip()
+            hora = (request.form.get('hora') or '').strip()
 
-        if titulo and fecha:
-            cursor.execute(
-                'INSERT INTO agenda (titulo, descripcion, fecha, hora, usuario_id) VALUES (?, ?, ?, ?, ?)',
-                (titulo, descripcion, fecha, hora, current_user.id)
-            )
-            conn.commit()
+            if titulo and fecha:
+                cursor.execute(
+                    '''
+                    INSERT INTO agenda (titulo, descripcion, fecha, hora, usuario_id)
+                    VALUES (?, ?, ?, ?, ?)
+                    ''',
+                    (titulo, descripcion, fecha, hora, current_user.id)
+                )
+                conn.commit()
+                flash('Actividad guardada correctamente.', 'success')
+                return redirect(url_for('agenda'))
+            else:
+                flash('El título y la fecha son obligatorios.', 'error')
 
-    cursor.execute('SELECT * FROM agenda WHERE usuario_id = ? ORDER BY fecha ASC, hora ASC', (current_user.id,))
-    eventos = cursor.fetchall()
-    cursor.close()
-    conn.close()
+        cursor.execute(
+            '''
+            SELECT * FROM agenda
+            WHERE usuario_id = ?
+            ORDER BY fecha ASC, hora ASC
+            ''',
+            (current_user.id,)
+        )
+        eventos = cursor.fetchall()
 
-    eventos_list = [
-        {
-            'id': evento['id'],
-            'titulo': evento['titulo'],
-            'descripcion': evento['descripcion'] or '',
-            'fecha': evento['fecha'],
-            'hora': evento['hora'] or ''
+        eventos_list = []
+        eventos_futuros = []
+
+        hoy = date.today()
+        ahora = datetime.now()
+
+        for evento in eventos:
+            fecha_raw = evento['fecha']
+            hora_raw = evento['hora']
+
+            if hasattr(fecha_raw, 'isoformat'):
+                fecha_str = fecha_raw.isoformat()
+            else:
+                fecha_str = str(fecha_raw) if fecha_raw else ''
+
+            hora_str = str(hora_raw)[:5] if hora_raw else ''
+
+            eventos_list.append({
+                'id': evento['id'],
+                'titulo': evento['titulo'],
+                'descripcion': evento['descripcion'] or '',
+                'fecha': fecha_str,
+                'hora': hora_str
+            })
+
+            if fecha_str:
+                try:
+                    fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+
+                    if hora_str:
+                        fecha_hora_evento = datetime.strptime(
+                            f'{fecha_str} {hora_str}',
+                            '%Y-%m-%d %H:%M'
+                        )
+                    else:
+                        fecha_hora_evento = datetime.combine(fecha_obj, datetime.min.time())
+
+                    if fecha_obj > hoy or (fecha_obj == hoy and fecha_hora_evento >= ahora):
+                        eventos_futuros.append((fecha_hora_evento, evento))
+
+                except ValueError:
+                    pass
+
+        eventos_futuros.sort(key=lambda x: x[0])
+        eventos_urgentes = [evento for _, evento in eventos_futuros[:4]]
+
+        clima = {
+            'ciudad': 'Medellín',
+            'temperatura': 24,
+            'estado': 'Parcialmente nublado',
+            'max': 27,
+            'min': 18,
+            'humedad': 72,
+            'lluvia': 20,
+            'icono': 'fa-cloud-sun'
         }
-        for evento in eventos
-    ]
 
-    return render_template(
-        'agenda.html',
-        eventos=eventos,
-        eventos_json=json.dumps(eventos_list, ensure_ascii=False),
-        usuario=current_user.nombre_usuario
-    )
+        return render_template(
+            'agenda.html',
+            eventos=eventos,
+            eventos_urgentes=eventos_urgentes,
+            eventos_json=json.dumps(eventos_list, ensure_ascii=False),
+            usuario=current_user.nombre_usuario,
+            clima=clima
+        )
+
+    except Exception as e:
+        print(f'Error en agenda: {e}')
+        flash('Ocurrió un error al cargar la agenda.', 'error')
+        return redirect(url_for('agenda'))
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
-@app.route('/eliminar_evento', methods=['POST'])
+
+@app.route('/eliminar_cita/<int:cita_id>')
 @login_required
-def eliminar_evento():
-    evento_id = request.form.get('id')
-    if evento_id:
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM agenda WHERE id = ? AND usuario_id = ?', (evento_id, current_user.id))
-            conn.commit()
-            cursor.close()
-            conn.close()
-        except Exception as e:
-            print('Error al eliminar evento de agenda:', e)
+def eliminar_cita(cita_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM agenda WHERE id = %s AND usuario_id = %s',
+            (cita_id, current_user.id)
+        )
+        conn.commit()
+        flash('Actividad eliminada correctamente.', 'success')
+    except Exception as e:
+        conn.rollback()
+        print(f'Error al eliminar actividad: {e}')
+        flash('No se pudo eliminar la actividad.', 'error')
+    finally:
+        cursor.close()
+        conn.close()
+
     return redirect(url_for('agenda'))
+
 
 
 @app.route('/editar_evento', methods=['POST'])
@@ -1418,7 +1511,17 @@ def registros():
 @login_required
 def abonar_deuda():
     deuda_id = request.form.get('deuda_id')
-    monto_abono = Decimal(request.form.get('monto_abono'))
+    monto_abono_raw = request.form.get('monto_abono', '').strip()
+
+    try:
+        monto_abono = to_decimal(monto_abono_raw)
+    except (InvalidOperation, ValueError):
+        flash('El monto del abono no es válido.', 'danger')
+        return redirect(url_for('registros', seccion='deudas'))
+
+    if monto_abono <= 0:
+        flash('El monto del abono debe ser mayor a 0.', 'danger')
+        return redirect(url_for('registros', seccion='deudas'))
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1428,22 +1531,50 @@ def abonar_deuda():
             (deuda_id, current_user.id)
         )
         deuda = cursor.fetchone()
-        if deuda:
-            nuevo_saldo = deuda['saldo'] - monto_abono
-            estado = 'pagado' if nuevo_saldo <= 0 else 'pendiente'
-            descripcion_deuda = deuda['descripcion'] or f"Deuda ID {deuda_id}"
 
-            cursor.execute("""
-                INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
-                VALUES (CURRENT_DATE, ?, ?, ?, ?, NULL)
-            """, (f"Abono a deuda: {descripcion_deuda}", monto_abono, 'abono_deuda', current_user.id))
+        if not deuda:
+            flash('Deuda no encontrada.', 'danger')
+            return redirect(url_for('registros', seccion='deudas'))
 
-            cursor.execute("""
-                UPDATE deudas SET saldo = ?, estado = ?
-                WHERE id = ? AND usuario_id = ?
-            """, (max(nuevo_saldo, 0), estado, deuda_id, current_user.id))
+        saldo_actual = to_decimal(deuda['saldo'])
+        nuevo_saldo = saldo_actual - monto_abono
 
-            conn.commit()
+        if nuevo_saldo <= 0:
+            nuevo_saldo = Decimal('0')
+            estado = 'pagado'
+        else:
+            estado = 'pendiente'
+
+        descripcion_deuda = deuda['descripcion'] or f"Deuda ID {deuda_id}"
+
+        cursor.execute("""
+            INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+            VALUES (CURRENT_DATE, ?, ?, ?, ?, NULL)
+        """, (
+            f"Abono a deuda: {descripcion_deuda}",
+            float(monto_abono),
+            'abono_deuda',
+            current_user.id
+        ))
+
+        cursor.execute("""
+            UPDATE deudas SET saldo = ?, estado = ?
+            WHERE id = ? AND usuario_id = ?
+        """, (
+            float(nuevo_saldo),
+            estado,
+            deuda_id,
+            current_user.id
+        ))
+
+        conn.commit()
+        flash('Abono a deuda registrado correctamente.', 'success')
+
+    except Exception as e:
+        conn.rollback()
+        print("Error en abonar_deuda:", e)
+        flash('Ocurrió un error al registrar el abono.', 'danger')
+
     finally:
         cursor.close()
         conn.close()
@@ -1454,8 +1585,18 @@ def abonar_deuda():
 @app.route('/prestamos/abonar', methods=['POST'])
 @login_required
 def abonar_prestamo():
-    prestamo_id = request.form['prestamo_id']
-    monto_abono = Decimal(request.form['monto_abono'])
+    prestamo_id = request.form.get('prestamo_id')
+    monto_abono_raw = request.form.get('monto_abono', '').strip()
+
+    try:
+        monto_abono = to_decimal(monto_abono_raw)
+    except (InvalidOperation, ValueError):
+        flash('El monto del abono no es válido.', 'danger')
+        return redirect(url_for('registros', seccion='prestamos'))
+
+    if monto_abono <= 0:
+        flash('El monto del abono debe ser mayor a 0.', 'danger')
+        return redirect(url_for('registros', seccion='prestamos'))
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1465,22 +1606,50 @@ def abonar_prestamo():
             (prestamo_id, current_user.id)
         )
         prestamo = cursor.fetchone()
-        if prestamo:
-            nuevo_saldo = prestamo['saldo'] - monto_abono
-            estado = 'pagado' if nuevo_saldo <= 0 else 'pendiente'
-            descripcion_prestamo = prestamo['descripcion'] or f"Préstamo ID {prestamo_id}"
 
-            cursor.execute("""
-                UPDATE prestamos SET saldo = ?, estado = ?
-                WHERE id = ? AND usuario_id = ?
-            """, (max(nuevo_saldo, 0), estado, prestamo_id, current_user.id))
+        if not prestamo:
+            flash('Préstamo no encontrado.', 'danger')
+            return redirect(url_for('registros', seccion='prestamos'))
 
-            cursor.execute("""
-                INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
-                VALUES (CURRENT_DATE, ?, ?, ?, ?, NULL)
-            """, (f"Abono recibido del préstamo: {descripcion_prestamo}", monto_abono, 'abono_a_recibir', current_user.id))
+        saldo_actual = to_decimal(prestamo['saldo'])
+        nuevo_saldo = saldo_actual - monto_abono
 
-            conn.commit()
+        if nuevo_saldo <= 0:
+            nuevo_saldo = Decimal('0')
+            estado = 'pagado'
+        else:
+            estado = 'pendiente'
+
+        descripcion_prestamo = prestamo['descripcion'] or f"Préstamo ID {prestamo_id}"
+
+        cursor.execute("""
+            UPDATE prestamos SET saldo = ?, estado = ?
+            WHERE id = ? AND usuario_id = ?
+        """, (
+            float(nuevo_saldo),
+            estado,
+            prestamo_id,
+            current_user.id
+        ))
+
+        cursor.execute("""
+            INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+            VALUES (CURRENT_DATE, ?, ?, ?, ?, NULL)
+        """, (
+            f"Abono recibido del préstamo: {descripcion_prestamo}",
+            float(monto_abono),
+            'abono_a_recibir',
+            current_user.id
+        ))
+
+        conn.commit()
+        flash('Abono de préstamo registrado correctamente.', 'success')
+
+    except Exception as e:
+        conn.rollback()
+        print("Error en abonar_prestamo:", e)
+        flash('Ocurrió un error al registrar el abono.', 'danger')
+
     finally:
         cursor.close()
         conn.close()

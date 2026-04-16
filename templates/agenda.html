@@ -3,487 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
-<style>
-.agenda-page {
-    display: grid;
-    grid-template-columns: minmax(320px, 1fr) 1.6fr;
-    gap: 22px;
-    padding: 18px 0;
-}
-
-.agenda-panel,
-.agenda-calendar {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    box-shadow: 0 18px 70px rgba(15, 23, 42, 0.08);
-    padding: 24px;
-    transition: transform 0.25s ease, opacity 0.25s ease;
-}
-
-.agenda-panel { transform: translateY(0); }
-.agenda-calendar { transform: translateY(0); }
-
-.card-subtitle {
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 14px;
-}
-
-.form-group {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.form-group label {
-    font-size: 12px;
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    background: var(--bg-base);
-    color: var(--text-primary);
-    font-size: 14px;
-    font-family: var(--font-sans);
-}
-
-.form-group textarea { min-height: 108px; resize: vertical; }
-
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 12px 16px;
-    border: none;
-    border-radius: var(--radius-lg);
-    background: var(--accent);
-    color: var(--accent-text);
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.btn-primary:hover { opacity: 0.94; transform: translateY(-1px); }
-
-.event-list {
-    display: grid;
-    gap: 12px;
-    margin-top: 24px;
-}
-
-.event-card {
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    padding: 16px;
-    background: var(--bg-elevated);
-    transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
-    opacity: 0;
-    transform: translateY(14px);
-}
-
-.event-card.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.event-card strong {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-    font-size: 15px;
-}
-
-.event-card small {
-    color: var(--text-muted);
-}
-
-.calendar-wrapper {
-    display: grid;
-    gap: 18px;
-}
-
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.calendar-header h2 {
-    margin: 0;
-    font-size: 22px;
-    color: var(--text-primary);
-}
-
-.calendar-nav {
-    display: flex;
-    gap: 10px;
-}
-
-.calendar-nav button {
-    width: 42px;
-    height: 42px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-base);
-    color: var(--text-primary);
-    cursor: pointer;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.calendar-grid .weekday {
-    color: var(--text-muted);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    text-align: center;
-}
-
-.calendar-day {
-    min-height: 110px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px;
-    border-radius: 18px;
-    background: var(--bg-base);
-    border: 1px solid transparent;
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease;
-    opacity: 0;
-    transform: translateY(12px);
-}
-
-.calendar-day.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.calendar-day:hover {
-    border-color: rgba(232,255,107,0.22);
-    box-shadow: 0 22px 50px rgba(0,0,0,0.12);
-    transform: translateY(-1px);
-}
-
-.calendar-day.today {
-    border-color: rgba(76, 145, 255, 0.2);
-    background: linear-gradient(180deg, rgba(76,145,255,0.08) 0%, rgba(255,255,255,0.95) 100%);
-}
-
-.calendar-day.other-month { opacity: 0.5; }
-
-.calendar-day-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.calendar-day .day-number {
-    width: 28px; height: 28px;
-    display: grid; place-items: center;
-    border-radius: 999px;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    font-size: 13px;
-}
-
-.calendar-events {
-    display: grid;
-    gap: 8px;
-    margin-top: auto;
-}
-
-.calendar-event {
-    padding: 8px 10px;
-    border-radius: 14px;
-    background: rgba(87, 96, 255, 0.1);
-    color: #2f3b7f;
-    font-size: 12px;
-    line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.no-events {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.agenda-toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 800;
-    background: rgba(10, 10, 10, 0.94);
-    color: #f8fafc;
-    border-radius: 18px;
-    padding: 14px 18px;
-    box-shadow: 0 24px 48px rgba(0,0,0,0.25);
-    opacity: 0;
-    transform: translateY(14px);
-    pointer-events: none;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    min-width: 200px;
-    max-width: 320px;
-    font-size: 13px;
-}
-
-.agenda-toast.show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-@media (max-width: 1024px) {
-    .agenda-page { grid-template-columns: 1fr; }
-    .calendar-wrapper { gap: 14px; }
-}
-
-@media (max-width: 768px) {
-    .agenda-page { grid-template-columns: 1fr; }
-    .agenda-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    .agenda-panel, .agenda-calendar { padding: 20px; }
-    .calendar-grid { gap: 8px; }
-    .calendar-day { min-height: 90px; padding: 12px; }
-    .calendar-event { font-size: 11px; }
-    .calendar-nav button { width: 38px; height: 38px; }
-    .agenda-toast { right: 16px; left: 16px; bottom: 18px; }
-}
-
-@media (max-width: 560px) {
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-    .calendar-day { padding: 10px; }
-    .event-card { padding: 14px; }
-}
-
-.agenda-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 18px;
-    margin-bottom: 20px;
-}
-
-.agenda-header h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.agenda-header p {
-    margin: 4px 0 0;
-    color: var(--text-muted);
-    line-height: 1.6;
-}
-
-.card-subtitle {
-    font-size: 13px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 14px;
-}
-
-.form-group {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.form-group label {
-    font-size: 12px;
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 12px 14px;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
-    background: var(--bg-base);
-    color: var(--text-primary);
-    font-size: 14px;
-    font-family: var(--font-sans);
-}
-
-.form-group textarea { min-height: 108px; resize: vertical; }
-
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 12px 16px;
-    border: none;
-    border-radius: var(--radius-lg);
-    background: var(--accent);
-    color: var(--accent-text);
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.btn-primary:hover { opacity: 0.94; transform: translateY(-1px); }
-
-.event-list {
-    display: grid;
-    gap: 12px;
-    margin-top: 24px;
-}
-
-.event-card {
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    padding: 16px;
-    background: var(--bg-elevated);
-}
-
-.event-card strong {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-    font-size: 15px;
-}
-
-.event-card small {
-    color: var(--text-muted);
-}
-
-.calendar-wrapper {
-    display: grid;
-    gap: 18px;
-}
-
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.calendar-header h2 {
-    margin: 0;
-    font-size: 22px;
-    color: var(--text-primary);
-}
-
-.calendar-nav {
-    display: flex;
-    gap: 10px;
-}
-
-.calendar-nav button {
-    width: 42px;
-    height: 42px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--bg-base);
-    color: var(--text-primary);
-    cursor: pointer;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.calendar-grid .weekday {
-    color: var(--text-muted);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    text-align: center;
-}
-
-.calendar-day {
-    min-height: 110px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px;
-    border-radius: 18px;
-    background: var(--bg-base);
-    border: 1px solid transparent;
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.calendar-day.today {
-    border-color: rgba(76, 145, 255, 0.2);
-    background: linear-gradient(180deg, rgba(76,145,255,0.08) 0%, rgba(255,255,255,0.95) 100%);
-}
-
-.calendar-day.other-month { opacity: 0.42; }
-
-.calendar-day-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.calendar-day .day-number {
-    width: 28px; height: 28px;
-    display: grid; place-items: center;
-    border-radius: 999px;
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    font-size: 13px;
-}
-
-.calendar-events {
-    display: grid;
-    gap: 8px;
-    margin-top: auto;
-}
-
-.calendar-event {
-    padding: 8px 10px;
-    border-radius: 14px;
-    background: rgba(87, 96, 255, 0.1);
-    color: #2f3b7f;
-    font-size: 12px;
-    line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.no-events {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-@media (max-width: 1024px) {
-    .agenda-page { grid-template-columns: 1fr; }
-}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_agenda.css') }}">
 {% endblock %}
 
 {% block contenido %}
@@ -493,54 +13,35 @@
         <p>Organiza tus actividades programadas y visualízalas en un calendario claro y profesional.</p>
     </div>
 </div>
-<div id="agendaToast" class="agenda-toast" aria-live="polite"></div>
 
-<div class="agenda-page">
+<div class="agenda-top">
     <section class="agenda-panel">
         <div class="card-subtitle">Añadir actividad</div>
         <form method="POST" action="{{ url_for('agenda') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="form-group">
                 <label for="titulo">Título</label>
                 <input id="titulo" name="titulo" type="text" placeholder="Reunión con cliente" required>
             </div>
+
             <div class="form-group">
                 <label for="descripcion">Descripción</label>
                 <textarea id="descripcion" name="descripcion" placeholder="Escribe detalles breves..."></textarea>
             </div>
+
             <div class="form-group">
                 <label for="fecha">Fecha</label>
                 <input id="fecha" name="fecha" type="date" required>
             </div>
+
             <div class="form-group">
                 <label for="hora">Hora</label>
-                <input id="hora" name="hora" type="time" placeholder="14:30">
+                <input id="hora" name="hora" type="time">
             </div>
+
             <button class="btn-primary" type="submit">Guardar actividad</button>
         </form>
-
-        <div class="card-subtitle" style="margin-top: 32px;">Próximos eventos</div>
-        <div class="event-list">
-            {% if eventos %}
-                {% for evento in eventos[:5] %}
-                <div class="event-card">
-                    <strong>{{ evento.titulo | e }}</strong>
-                    <small>{{ evento.fecha }}{% if evento.hora %} · {{ evento.hora }}{% endif %}</small>
-                    <p style="margin:10px 0 0; color: var(--text-secondary); font-size:13px; line-height:1.5;">{{ evento.descripcion | e }}</p>
-                    <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top:12px;">
-                        <button type="button" class="btn-primary" style="background:#f3f4f6; color:#1f2937; border:1px solid var(--border); min-width:100px;" onclick="abrirModalEditarEvento({{ evento.id }}, '{{ evento.titulo | e | replace("'","\'") }}', '{{ evento.descripcion | e | replace("'","\'") }}', '{{ evento.fecha }}', '{{ evento.hora or '' }}')">Editar</button>
-                        <form method="POST" action="{{ url_for('eliminar_evento') }}" style="display:inline-block;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="id" value="{{ evento.id }}">
-                            <button type="submit" class="btn-primary" style="background:#f3f4f6; color:#1f2937; border:1px solid var(--border); min-width:100px;">Eliminar</button>
-                        </form>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="no-events">No tienes actividades programadas todavía.</div>
-            {% endif %}
-        </div>
     </section>
 
     <section class="agenda-calendar">
@@ -548,13 +49,42 @@
             <div class="calendar-header">
                 <div>
                     <h2 id="calendarTitle">Calendario</h2>
-                    <p style="margin:4px 0 0; color: var(--text-muted);">Consulta tus actividades del mes y encuentra rápidamente fechas ocupadas.</p>
+                    <p style="margin:4px 0 0; color: var(--text-muted);">
+                        Consulta tus actividades del mes y encuentra rápidamente fechas ocupadas.
+                    </p>
                 </div>
+
                 <div class="calendar-nav">
-                    <button type="button" onclick="changeMonth(-1)" aria-label="Mes anterior"><i class="fa-solid fa-chevron-left"></i></button>
-                    <button type="button" onclick="changeMonth(1)" aria-label="Mes siguiente"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" onclick="changeMonth(-1)" aria-label="Mes anterior">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <button type="button" onclick="changeMonth(1)" aria-label="Mes siguiente">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
+
+            {% if clima %}
+            <div class="weather-card">
+                <div class="weather-left">
+                    <div class="weather-icon">
+                        <i class="fa-solid {{ clima.icono }}"></i>
+                    </div>
+
+                    <div class="weather-meta">
+                        <div class="weather-city">{{ clima.ciudad }}</div>
+                        <div class="weather-state">{{ clima.estado }}</div>
+                        <div class="weather-temp">{{ clima.temperatura }}°C</div>
+                    </div>
+                </div>
+
+                <div class="weather-right">
+                    <div class="weather-detail"><strong>Máx:</strong> {{ clima.max }}°C · <strong>Mín:</strong> {{ clima.min }}°C</div>
+                    <div class="weather-detail"><strong>Humedad:</strong> {{ clima.humedad }}%</div>
+                    <div class="weather-detail"><strong>Lluvia:</strong> {{ clima.lluvia }}%</div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="calendar-grid" id="calendarWeekdays"></div>
             <div class="calendar-grid" id="calendarDays"></div>
@@ -562,30 +92,100 @@
     </section>
 </div>
 
-<div id="modal-editar-evento" class="modal" style="display:none;">
-    <div class="modal-content">
-        <form method="POST" action="{{ url_for('editar_evento') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="id" id="editar-evento-id">
-            <label>Título</label>
-            <input type="text" name="titulo" id="editar-evento-titulo" required>
-            <label>Descripción</label>
-            <textarea name="descripcion" id="editar-evento-descripcion"></textarea>
-            <label>Fecha</label>
-            <input type="date" name="fecha" id="editar-evento-fecha" required>
-            <label>Hora</label>
-            <input type="time" name="hora" id="editar-evento-hora">
-            <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
-                <button type="submit" class="btn-primary">Guardar cambios</button>
-                <button type="button" class="btn-primary" style="background:none; color:var(--text-primary); border:1px solid var(--border);" onclick="cerrarModalEditarEvento()">Cancelar</button>
+<div class="agenda-bottom">
+
+    <section class="agenda-urgent-board">
+        <div class="events-board-header">
+            <div>
+                <h3>Más urgentes</h3>
+                <p>Aquí ves primero tus próximas actividades para no perder de vista lo importante.</p>
             </div>
-        </form>
-    </div>
+            <div class="card-subtitle" style="margin-bottom: 0;">{{ eventos_urgentes|length }} prioritarias</div>
+        </div>
+
+        {% if eventos_urgentes %}
+        <div class="events-grid">
+            {% for evento in eventos_urgentes %}
+            <article class="event-card urgent">
+                <div class="event-badge">
+                    <i class="fa-solid fa-bolt"></i>
+                    {{ evento.fecha }}{% if evento.hora %} · {{ evento.hora }}{% endif %}
+                </div>
+                <strong>{{ evento.titulo }}</strong>
+                {% if evento.descripcion %}
+                <p>{{ evento.descripcion }}</p>
+                {% else %}
+                <p>Sin descripción adicional.</p>
+                {% endif %}
+
+                <div class="event-actions">
+                    <a
+                        class="btn-delete"
+                        href="{{ url_for('eliminar_cita', cita_id=evento.id) }}"
+                        onclick="return confirm('¿Seguro que deseas eliminar esta actividad?');"
+                    >
+                        <i class="fa-solid fa-trash"></i>
+                        Eliminar
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-events-board">
+            No hay actividades urgentes por ahora.
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="agenda-events-board">
+        <div class="events-board-header">
+            <div>
+                <h3>Actividades guardadas</h3>
+                <p>Consulta rápidamente tus próximas citas y compromisos registrados.</p>
+            </div>
+            <div class="card-subtitle" style="margin-bottom: 0;">{{ eventos|length }} registradas</div>
+        </div>
+
+        {% if eventos %}
+        <div class="events-grid">
+            {% for evento in eventos %}
+            <article class="event-card">
+                <div class="event-badge">
+                    <i class="fa-regular fa-calendar"></i>
+                    {{ evento.fecha }}{% if evento.hora %} · {{ evento.hora }}{% endif %}
+                </div>
+                <strong>{{ evento.titulo }}</strong>
+                {% if evento.descripcion %}
+                <p>{{ evento.descripcion }}</p>
+                {% else %}
+                <p>Sin descripción adicional.</p>
+                {% endif %}
+
+                <div class="event-actions">
+                    <a
+                        class="btn-delete"
+                        href="{{ url_for('eliminar_cita', cita_id=evento.id) }}"
+                        onclick="return confirm('¿Seguro que deseas eliminar esta actividad?');"
+                    >
+                        <i class="fa-solid fa-trash"></i>
+                        Eliminar
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-events-board">
+            Todavía no has guardado actividades. Crea tu primera cita desde el formulario.
+        </div>
+        {% endif %}
+    </section>
 </div>
 
 <script>
 const agendaEvents = {{ eventos_json | safe }};
-const weekdayLabels = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const weekdayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 let currentDate = new Date();
 
 function buildCalendar() {
@@ -593,10 +193,15 @@ function buildCalendar() {
     const weekdays = document.getElementById('calendarWeekdays');
     const days = document.getElementById('calendarDays');
 
-    const monthName = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const monthName = currentDate.toLocaleDateString('es-ES', {
+        month: 'long',
+        year: 'numeric'
+    });
     title.textContent = `Calendario — ${monthName}`;
 
-    weekdays.innerHTML = weekdayLabels.map(d => `<div class="weekday">${d}</div>`).join('');
+    weekdays.innerHTML = weekdayLabels
+        .map(d => `<div class="weekday">${d}</div>`)
+        .join('');
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -622,20 +227,26 @@ function buildCalendar() {
 
         if (i < offset) {
             realDay = prevDays - offset + i + 1;
-            dateString = new Date(year, month - 1, realDay).toISOString().slice(0, 10);
+            const prevDate = new Date(year, month - 1, realDay);
+            dateString = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}-${String(prevDate.getDate()).padStart(2, '0')}`;
             isOther = true;
         } else if (dayNumber > daysInMonth) {
             realDay = dayNumber - daysInMonth;
-            dateString = new Date(year, month + 1, realDay).toISOString().slice(0, 10);
+            const nextDate = new Date(year, month + 1, realDay);
+            dateString = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
             isOther = true;
         } else {
             realDay = dayNumber;
-            dateString = `${year}-${String(month + 1).padStart(2,'0')}-${String(realDay).padStart(2,'0')}`;
+            dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(realDay).padStart(2, '0')}`;
         }
 
         const events = eventMap[dateString] || [];
         const today = new Date();
-        const isToday = !isOther && realDay === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+        const isToday =
+            !isOther &&
+            realDay === today.getDate() &&
+            month === today.getMonth() &&
+            year === today.getFullYear();
 
         html += `
             <div class="calendar-day ${isOther ? 'other-month' : ''} ${isToday ? 'today' : ''}">
@@ -643,10 +254,16 @@ function buildCalendar() {
                     <span class="day-number">${realDay}</span>
                 </div>
                 <div class="calendar-events">
-                    ${events.slice(0,2).map(event => `<div class="calendar-event">${event.hora ? event.hora + ' · ' : ''}${event.titulo}</div>`).join('')}
-                    ${events.length === 0 ? '<div class="no-events">Sin eventos</div>' : ''}
+                    ${
+                        events.length > 0
+                            ? events.slice(0, 2).map(event =>
+                                `<div class="calendar-event">${event.hora ? event.hora + ' · ' : ''}${event.titulo}</div>`
+                              ).join('')
+                            : '<div class="no-events">Sin eventos</div>'
+                    }
                 </div>
-            </div>`;
+            </div>
+        `;
     }
 
     days.innerHTML = html;
@@ -657,46 +274,6 @@ function changeMonth(direction) {
     buildCalendar();
 }
 
-function abrirModalEditarEvento(id, titulo, descripcion, fecha, hora) {
-    document.getElementById('editar-evento-id').value = id;
-    document.getElementById('editar-evento-titulo').value = titulo;
-    document.getElementById('editar-evento-descripcion').value = descripcion;
-    document.getElementById('editar-evento-fecha').value = fecha;
-    document.getElementById('editar-evento-hora').value = hora;
-    document.getElementById('modal-editar-evento').style.display = 'flex';
-}
-
-function cerrarModalEditarEvento() {
-    document.getElementById('modal-editar-evento').style.display = 'none';
-}
-
-function showAgendaToast(message) {
-    const toast = document.getElementById('agendaToast');
-    if (!toast || !message) return;
-    toast.textContent = message;
-    toast.classList.add('show');
-    clearTimeout(window.agendaToastTimeout);
-    window.agendaToastTimeout = setTimeout(() => toast.classList.remove('show'), 2800);
-}
-
-function animateCalendarAndCards() {
-    document.querySelectorAll('.calendar-day').forEach((day, index) => {
-        setTimeout(() => day.classList.add('visible'), index * 12);
-    });
-    document.querySelectorAll('.event-card').forEach((card, index) => {
-        setTimeout(() => card.classList.add('visible'), 120 + index * 80);
-    });
-}
-
-function showFlashToast() {
-    const mensaje = document.querySelector('.mensajes-flash li');
-    if (mensaje) {
-        showAgendaToast(mensaje.textContent.trim());
-    }
-}
-
 buildCalendar();
-animateCalendarAndCards();
-showFlashToast();
 </script>
 {% endblock %}
