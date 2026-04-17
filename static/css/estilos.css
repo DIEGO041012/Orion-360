@@ -47,6 +47,46 @@
 }
 
 /* ═══════════════════════════════════════
+   MODO CLARO
+═══════════════════════════════════════ */
+body.light-mode {
+    --bg-base:       #f5f5f3;
+    --bg-surface:    #ffffff;
+    --bg-elevated:   #efefed;
+    --bg-hover:      #e8e8e6;
+    --bg-active:     #e0e0de;
+    --border:        #d8d8d5;
+    --border-subtle: #e8e8e6;
+    --border-mid:    #c8c8c5;
+
+    --text-primary:  #1a1a18;
+    --text-secondary:#4a4a46;
+    --text-muted:    #9a9a96;
+
+    --accent:        #5b76f7;
+    --accent-dim:    rgba(91,118,247,0.10);
+    --accent-border: rgba(91,118,247,0.25);
+    --accent-text:   #ffffff;
+
+    --green:         #16a34a;
+    --green-dim:     rgba(22,163,74,0.10);
+    --red:           #dc2626;
+    --red-dim:       rgba(220,38,38,0.10);
+    --blue:          #2563eb;
+    --blue-dim:      rgba(37,99,235,0.10);
+    --amber:         #d97706;
+    --amber-dim:     rgba(217,119,6,0.10);
+}
+
+body.light-mode header {
+    background: rgba(245,245,243,0.88);
+}
+
+body.light-mode #sidebar {
+    box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+}
+
+/* ═══════════════════════════════════════
    Reset & Base
 ═══════════════════════════════════════ */
 *, *::before, *::after {
@@ -65,6 +105,7 @@ body {
     line-height: 1.6;
     min-height: 100%;
     -webkit-font-smoothing: antialiased;
+    transition: background var(--transition), color var(--transition);
 }
 
 a { color: inherit; text-decoration: none; }
@@ -93,8 +134,8 @@ input, select, textarea { font-family: var(--font-sans); }
     flex-direction: column;
     z-index: 200;
     overflow: hidden;
-    /* Transición en width (colapso desktop) y transform (móvil) */
-    transition: width var(--transition), transform var(--transition);
+    transition: width var(--transition), transform var(--transition),
+                background var(--transition), border-color var(--transition);
 }
 
 /* Brand */
@@ -256,7 +297,6 @@ body.sidebar-collapsed #sidebar {
     width: var(--sidebar-collapsed);
 }
 
-/* Header/contenido se adaptan */
 body.sidebar-collapsed header {
     left: var(--sidebar-collapsed);
 }
@@ -265,13 +305,11 @@ body.sidebar-collapsed #contenido-principal {
     margin-left: var(--sidebar-collapsed);
 }
 
-/* Ocultar textos */
 body.sidebar-collapsed .sidebar-name     { opacity: 0; max-width: 0; }
 body.sidebar-collapsed .nav-section-label{ opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
 body.sidebar-collapsed .nav-text         { opacity: 0; max-width: 0; }
 body.sidebar-collapsed .sidebar-username { opacity: 0; max-width: 0; }
 
-/* Centrar íconos */
 body.sidebar-collapsed .sidebar-brand { justify-content: center; padding: 17px 0; }
 body.sidebar-collapsed .sidebar-nav a { justify-content: center; padding: 9px 0; gap: 0; }
 body.sidebar-collapsed .sidebar-user  { justify-content: center; padding: 7px 0; gap: 0; }
@@ -328,7 +366,7 @@ header {
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-subtle);
     z-index: 100;
-    transition: left var(--transition);
+    transition: left var(--transition), background var(--transition), border-color var(--transition);
 }
 
 body:not(.autenticado) header { left: 0; }
@@ -344,9 +382,8 @@ body:not(.autenticado) header { left: 0; }
 .nav-left  { display: flex; align-items: center; }
 .nav-center { display: flex; align-items: center; gap: 14px; flex: 1; }
 
-/* ── Botón toggle — SIEMPRE visible en desktop ── */
 .sidebar-toggle {
-    display: inline-flex;        /* siempre visible */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     background: none;
@@ -361,6 +398,30 @@ body:not(.autenticado) header { left: 0; }
 }
 
 .sidebar-toggle:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-mid);
+}
+
+/* ── Botón tema ── */
+#theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+#theme-toggle:hover {
     background: var(--bg-elevated);
     color: var(--text-primary);
     border-color: var(--border-mid);
@@ -384,7 +445,7 @@ body:not(.autenticado) header { left: 0; }
 .auth-link:last-child:hover { opacity: 0.88; }
 
 /* User menu topbar */
-.user-menu { position: relative; margin-left: auto; }
+.user-menu { position: relative; }
 
 .user-avatar {
     width: 30px; height: 30px;
@@ -470,7 +531,6 @@ main { padding: 28px 32px; max-width: 1280px; }
 }
 
 @media (max-width: 768px) {
-    /* En móvil el sidebar se desliza, no colapsa */
     #sidebar {
         width: var(--sidebar-w) !important;
         transform: translateX(calc(-1 * var(--sidebar-w)));
@@ -488,7 +548,6 @@ main { padding: 28px 32px; max-width: 1280px; }
     .nav-center { width: 100%; gap: 10px; }
     .auth-link { width: auto; padding: 8px 12px; }
 
-    /* Revertir colapso en móvil — mostrar textos siempre */
     body.sidebar-collapsed .sidebar-name,
     body.sidebar-collapsed .nav-section-label,
     body.sidebar-collapsed .nav-text,

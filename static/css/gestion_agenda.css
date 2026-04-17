@@ -449,3 +449,48 @@
         align-items: flex-start;
     }
 }
+
+/*clima*/
+/* ── Pronóstico clima ── */
+.forecast-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.forecast-card {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+    display: grid;
+    gap: 6px;
+}
+
+.forecast-date {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.forecast-icon {
+    font-size: 18px;
+    color: var(--accent);
+}
+
+.forecast-temp {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.forecast-state {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.forecast-range {
+    font-size: 11px;
+    color: var(--text-muted);
+}                                                                                                       

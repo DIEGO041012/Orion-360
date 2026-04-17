@@ -1,397 +1,306 @@
-/* Contenedor general centrado */
-.contenedor-central {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 91vh;
-  background-color: #f9f9f9;
-  width: 100%;
-}
-
-/* Caja principal */
-.dashboard-principal {
-  background-color: #ffffff;
-  padding: 2rem 3rem;
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  width: 30%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Encabezado */
-.encabezado {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-
-.usuario-saludo {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  font-size: 1rem;
-  color: #333;
-}
-
-.usuario-saludo .foto-icono {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #ddd;
-}
-
-.saldo-info p {
-  margin: 0;
-  color: #777;
-  font-size: 0.95rem;
-}
-
-.saldo-info h2 {
-  color: #2c3e50;
-  margin: 0.25rem 0 0 0;
-  font-size: 1.8rem;
-}
-
-/* Título */
-.titulo {
-  text-align: center;
-  color: #2c3e50;
-  font-size: 1.4rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Botones de navegación */
-.ver-todos-container {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 2rem;
-}
-
-.btn-ver-todos {
-  background-color: #4b0082;
-  color: white;
-  padding: 0.75rem 1.25rem;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
-  font-size: 0.95rem;
-}
-
-.btn-ver-todos:hover {
-  background-color: #3a006b;
-}
-
-/* Botones tipo (tarjetas) */
-.tipo-selector {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.tarjeta-btn {
-  background-color: #eef1f5;
-  color: #2c3e50;
-  border: 1px solid #d1d5db;
-  padding: 1rem;
-  border-radius: 12px;
-  text-align: center;
-  width: 120px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.tarjeta-btn:hover {
-  background-color: #dfe4ea;
-}
-
-.icono-grande {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  display: block;
-  color: #4b4b4b;
-}
-
-
-
-/*-------------------------------------------*/
-/*----------------- Modales -----------------*/
-/*-------------------------------------------*/
-
-/* ═══════════════════════════════════════
-   Movimientos — Dashboard
-═══════════════════════════════════════ */
 .movimientos-page {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    max-width: 680px;
 }
 
-/* ── Encabezado con saldo ── */
-.saldo-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    padding: 28px 32px;
+.movimientos-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    position: relative;
-    overflow: hidden;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
-.saldo-card::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(232,255,107,0.07) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-.saldo-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.saldo-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--border-mid);
-}
-
-.saldo-saludo {
-    font-size: 13.5px;
-    color: var(--text-muted);
-}
-
-.saldo-saludo strong {
+.movimientos-header h1 {
+    margin: 0;
+    font-size: 28px;
     color: var(--text-primary);
-    display: block;
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 2px;
 }
 
-.saldo-right {
-    text-align: right;
-}
-
-.saldo-label {
-    font-size: 11.5px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+.movimientos-header p {
+    margin: 6px 0 0;
     color: var(--text-muted);
-    margin-bottom: 4px;
+    font-size: 14px;
 }
 
-.saldo-valor {
-    font-size: 30px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-}
-
-/* ── Acciones rápidas ── */
 .quick-actions {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .btn-action {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: var(--radius-md);
-    font-size: 13.5px;
-    font-weight: 400;
-    border: 1px solid var(--border);
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 12px;
     background: var(--bg-elevated);
+    border: 1px solid var(--border);
     color: var(--text-secondary);
-    cursor: pointer;
     text-decoration: none;
+    font-size: 14px;
     transition: all var(--transition);
 }
 
 .btn-action:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
-    border-color: var(--border-mid);
 }
 
 .btn-action.primary {
     background: var(--accent);
     color: var(--accent-text);
     border-color: transparent;
-    font-weight: 500;
+    font-weight: 700;
 }
 
-.btn-action.primary:hover { opacity: 0.88; }
-
-/* ── Info cards ── */
-.info-note {
-    background: var(--accent-dim);
-    border: 1px solid var(--accent-border);
-    border-radius: var(--radius-lg);
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--accent);
-    font-size: 13.5px;
+.resumen-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
 }
 
-.info-note i { font-size: 18px; flex-shrink: 0; }
-
-/* ═══════════════════════════════════════
-   Movimientos — Dashboard
-═══════════════════════════════════════ */
-.movimientos-page {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    max-width: 680px;
-}
-
-/* ── Encabezado con saldo ── */
 .saldo-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-xl);
-    padding: 28px 32px;
+    padding: 22px;
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    position: relative;
+    align-items: center;
+    gap: 18px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.22);
+    min-width: 0;
     overflow: hidden;
 }
 
-.saldo-card::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(232,255,107,0.07) 0%, transparent 70%);
-    pointer-events: none;
+.saldo-left,
+.saldo-right {
+    min-width: 0;
 }
 
 .saldo-left {
     display: flex;
     align-items: center;
     gap: 14px;
-}
-
-.saldo-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--border-mid);
-}
-
-.saldo-saludo {
-    font-size: 13.5px;
-    color: var(--text-muted);
-}
-
-.saldo-saludo strong {
-    color: var(--text-primary);
-    display: block;
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 2px;
+    flex: 1 1 auto;
 }
 
 .saldo-right {
+    flex: 0 1 48%;
     text-align: right;
+    overflow: hidden;
+}
+
+.saldo-saludo {
+    font-size: 13px;
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+.saldo-saludo strong {
+    display: block;
+    font-size: 15px;
+    margin-top: 4px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .saldo-label {
-    font-size: 11.5px;
-    font-weight: 500;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-muted);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .saldo-valor {
-    font-size: 30px;
-    font-weight: 600;
+    font-size: clamp(22px, 2.2vw, 30px);
+    font-weight: 800;
+    color: var(--text-primary);
     font-family: var(--font-mono);
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* ── Acciones rápidas ── */
-.quick-actions {
-    display: flex;
-    gap: 10px;
+.saldo-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
 }
 
-.btn-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: var(--radius-md);
-    font-size: 13.5px;
-    font-weight: 400;
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text-secondary);
-    cursor: pointer;
-    text-decoration: none;
-    transition: all var(--transition);
+.saldo-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    flex-shrink: 0;
 }
 
-.btn-action:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-    border-color: var(--border-mid);
+@media (max-width: 1100px) {
+    .resumen-cards {
+        grid-template-columns: 1fr;
+    }
 }
 
-.btn-action.primary {
-    background: var(--accent);
-    color: var(--accent-text);
-    border-color: transparent;
-    font-weight: 500;
+@media (max-width: 768px) {
+    .saldo-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .saldo-right {
+        text-align: left;
+        width: 100%;
+        flex: 1 1 auto;
+    }
+
+    .saldo-valor {
+        white-space: normal;
+        word-break: break-word;
+    }
 }
 
-.btn-action.primary:hover { opacity: 0.88; }
-
-/* ── Info cards ── */
 .info-note {
-    background: var(--accent-dim);
-    border: 1px solid var(--accent-border);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    padding: 16px 20px;
+    padding: 14px 18px;
     display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--accent);
-    font-size: 13.5px;
+    color: var(--text-secondary);
+    font-size: 14px;
 }
 
-.info-note i { font-size: 18px; flex-shrink: 0; }
+.info-note i {
+    color: var(--accent);
+    font-size: 18px;
+}
+
+.tabla-widget {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+
+.tabla-widget-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.tabla-widget-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.tabla-movimientos {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla-movimientos th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.tabla-movimientos td {
+    padding: 14px 20px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 14px;
+}
+
+.tabla-movimientos tr:last-child td {
+    border-bottom: none;
+}
+
+.tabla-movimientos tr:hover td {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.num {
+    font-family: var(--font-mono);
+}
+
+.tipo-ingreso {
+    color: #22c55e;
+}
+
+.tipo-gasto {
+    color: #ef4444;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.badge-success {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.badge-neutral {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+
+.empty-state {
+    padding: 28px 20px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+@media (max-width: 1100px) {
+    .resumen-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .saldo-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .saldo-right {
+        text-align: left;
+    }
+
+    .tabla-movimientos {
+        display: block;
+        overflow-x: auto;
+    }                                                                                                                                                                                                                              
+}                                                                                                                                                                                                                                                                       

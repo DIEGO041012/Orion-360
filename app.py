@@ -31,11 +31,14 @@ from config import Config
 import asyncio
 import os
 import sys
+import requests
+from datetime import datetime, timezone
+
+load_dotenv()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'flaskform')))
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 sqlite3.register_adapter(Decimal, float)
-
 
 # ══════════════════════════════════════════════════════════
 # INICIALIZACIÓN DE LA APLICACIÓN
@@ -43,14 +46,25 @@ sqlite3.register_adapter(Decimal, float)
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
 print("DATABASE_URL:", app.config.get("DATABASE_URL"))
+print("CLOUDINARY_CLOUD_NAME:", app.config.get("CLOUDINARY_CLOUD_NAME"))
+print("CLOUDINARY_API_KEY:", app.config.get("CLOUDINARY_API_KEY"))
+print("CLOUDINARY_API_SECRET:", "OK" if app.config.get("CLOUDINARY_API_SECRET") else None)
+print("API KEY CLIMA:", app.config.get("OPENWEATHER_API_KEY"))
+
+cloudinary.config(
+    cloud_name=app.config.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=app.config.get("CLOUDINARY_API_KEY"),
+    api_secret=app.config.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 CORS(app)
 csrf = CSRFProtect(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'iniciar_sesion'
-
 
 # ══════════════════════════════════════════════════════════
 # BASE DE DATOS
@@ -539,12 +553,26 @@ def inject_user_data():
         resultado = cursor.fetchone()
         cursor.close()
         conn.close()
-        foto = (
-            resultado['foto']
-            if resultado and resultado['foto']
-            else "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
-        )
-        return {'usuario': current_user.nombre_usuario, 'usuario_foto': foto}
+
+        foto = None
+        if resultado and resultado['foto']:
+            foto_db = str(resultado['foto']).strip()
+
+            if foto_db.startswith('http://') or foto_db.startswith('https://'):
+                foto = foto_db
+            elif foto_db.startswith('static/'):
+                foto = url_for('static', filename=foto_db.replace('static/', '', 1))
+            else:
+                foto = url_for('static', filename=f'uploads/{foto_db}')
+
+        if not foto:
+            foto = "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
+
+        return {
+            'usuario': current_user.nombre_usuario,
+            'usuario_foto': foto
+        }
+
     return {}
 
 
@@ -599,7 +627,161 @@ def formatear_fecha_humana(fecha):
         return fecha_obj.strftime("%A").capitalize()
     else:
         return fecha_obj.strftime("%d/%m/%Y")
+    
+ # ══════════════════════════════════════════════════════════
+# widget clima
+# ══════════════════════════════════════════════════════════   
+def mapear_icono_clima(icono_openweather):
+    mapa = {
+        '01d': 'fa-sun',
+        '01n': 'fa-moon',
+        '02d': 'fa-cloud-sun',
+        '02n': 'fa-cloud-moon',
+        '03d': 'fa-cloud',
+        '03n': 'fa-cloud',
+        '04d': 'fa-cloud',
+        '04n': 'fa-cloud',
+        '09d': 'fa-cloud-showers-heavy',
+        '09n': 'fa-cloud-showers-heavy',
+        '10d': 'fa-cloud-rain',
+        '10n': 'fa-cloud-rain',
+        '11d': 'fa-bolt',
+        '11n': 'fa-bolt',
+        '13d': 'fa-snowflake',
+        '13n': 'fa-snowflake',
+        '50d': 'fa-smog',
+        '50n': 'fa-smog',
+    }
+    return mapa.get(icono_openweather, 'fa-cloud-sun')
 
+
+def obtener_clima_actual(ciudad='Medellin,CO'):
+    api_key = app.config.get('OPENWEATHER_API_KEY')
+
+    if not api_key:
+        print('⚠️ OPENWEATHER_API_KEY no configurada.')
+        return {
+            'ciudad': 'Medellín',
+            'temperatura': 24,
+            'estado': 'Sin API configurada',
+            'max': 27,
+            'min': 18,
+            'humedad': 72,
+            'lluvia': 0,
+            'icono': 'fa-cloud-sun'
+        }
+
+    url = 'https://api.openweathermap.org/data/2.5/weather'
+    params = {
+        'q': ciudad,
+        'appid': api_key,
+        'units': 'metric',
+        'lang': 'es'
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        lluvia = 0
+        if 'rain' in data:
+            lluvia = data['rain'].get('1h', data['rain'].get('3h', 0))
+
+        icono_api = data['weather'][0].get('icon', '02d')
+
+        return {
+            'ciudad': data.get('name', 'Medellín'),
+            'temperatura': round(data['main']['temp']),
+            'estado': data['weather'][0]['description'].capitalize(),
+            'max': round(data['main']['temp_max']),
+            'min': round(data['main']['temp_min']),
+            'humedad': data['main']['humidity'],
+            'lluvia': lluvia,
+            'icono': mapear_icono_clima(icono_api)
+        }
+
+    except Exception as e:
+        print('Error al obtener clima real:', e)
+        return {
+            'ciudad': 'Medellín',
+            'temperatura': 24,
+            'estado': 'No disponible',
+            'max': 27,
+            'min': 18,
+            'humedad': 72,
+            'lluvia': 0,
+            'icono': 'fa-cloud-sun'
+        }
+    
+def obtener_pronostico(ciudad='Medellin,CO'):
+    api_key = app.config.get('OPENWEATHER_API_KEY')
+
+    if not api_key:
+        print('⚠️ OPENWEATHER_API_KEY no configurada para pronóstico.')
+        return []
+
+    url = 'https://api.openweathermap.org/data/2.5/forecast'
+    params = {
+        'q': ciudad,
+        'appid': api_key,
+        'units': 'metric',
+        'lang': 'es'
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        pronostico_por_dia = {}
+
+        for item in data.get('list', []):
+            fecha_hora = item.get('dt_txt', '')
+            if not fecha_hora:
+                continue
+
+            fecha = fecha_hora.split(' ')[0]
+            hora = fecha_hora.split(' ')[1]
+
+            # Tomamos el bloque de las 12:00:00 si existe
+            if hora == '12:00:00':
+                pronostico_por_dia[fecha] = {
+                    'fecha': fecha,
+                    'temp': round(item['main']['temp']),
+                    'temp_min': round(item['main']['temp_min']),
+                    'temp_max': round(item['main']['temp_max']),
+                    'estado': item['weather'][0]['description'].capitalize(),
+                    'icono': mapear_icono_clima(item['weather'][0].get('icon', '02d'))
+                }
+
+        # Si no encontró suficientes días a las 12:00, tomar primeros días únicos
+        if len(pronostico_por_dia) < 4:
+            for item in data.get('list', []):
+                fecha_hora = item.get('dt_txt', '')
+                if not fecha_hora:
+                    continue
+
+                fecha = fecha_hora.split(' ')[0]
+
+                if fecha not in pronostico_por_dia:
+                    pronostico_por_dia[fecha] = {
+                        'fecha': fecha,
+                        'temp': round(item['main']['temp']),
+                        'temp_min': round(item['main']['temp_min']),
+                        'temp_max': round(item['main']['temp_max']),
+                        'estado': item['weather'][0]['description'].capitalize(),
+                        'icono': mapear_icono_clima(item['weather'][0].get('icon', '02d'))
+                    }
+
+                if len(pronostico_por_dia) >= 4:
+                    break
+
+        return list(pronostico_por_dia.values())[:4]
+
+    except Exception as e:
+        print('Error al obtener pronóstico:', e)
+        return []    
 
 # ══════════════════════════════════════════════════════════
 # MODELO DE USUARIO
@@ -658,41 +840,49 @@ def guardar_registro():
     clave = generate_password_hash(form.clave.data)
     foto = form.foto.data
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        'SELECT id FROM usuarios WHERE nombre_usuario = ? OR correo_electronico = ?',
-        (usuario, correo)
-    )
-    existente = cursor.fetchone()
-    if existente:
-        cursor.close()
-        conn.close()
-        flash('El nombre de usuario o correo ya está en uso.', 'danger')
-        return redirect(url_for('registro'))
-
     url_foto = "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
+
     if foto and foto.filename != "":
         try:
             resultado = cloudinary.uploader.upload(foto)
-            url_foto = resultado.get("secure_url")
+            url_foto = resultado.get("secure_url") or url_foto
+            print("URL FOTO REGISTRO:", url_foto)
         except Exception as e:
             flash("Error al subir imagen. Se usará la imagen por defecto.", "warning")
             print("Error Cloudinary:", e)
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        'INSERT INTO usuarios (nombre_usuario, correo_electronico, contraseña, foto) VALUES (?, ?, ?, ?)',
-        (usuario, correo, clave, url_foto)
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
 
-    flash('Registro exitoso.', 'success')
-    return redirect(url_for('iniciar_sesion'))
+    try:
+        cursor.execute(
+            'SELECT id FROM usuarios WHERE nombre_usuario = ? OR correo_electronico = ?',
+            (usuario, correo)
+        )
+        existente = cursor.fetchone()
 
+        if existente:
+            flash('El nombre de usuario o correo ya está en uso.', 'danger')
+            return redirect(url_for('registro'))
+
+        cursor.execute(
+            'INSERT INTO usuarios (nombre_usuario, correo_electronico, contraseña, foto) VALUES (?, ?, ?, ?)',
+            (usuario, correo, clave, url_foto)
+        )
+        conn.commit()
+
+        flash('Registro exitoso.', 'success')
+        return redirect(url_for('iniciar_sesion'))
+
+    except Exception as e:
+        conn.rollback()
+        print("Error al guardar registro:", e)
+        flash('Ocurrió un error al registrar el usuario.', 'danger')
+        return redirect(url_for('registro'))
+
+    finally:
+        cursor.close()
+        conn.close()    
 
 @app.route('/iniciar_sesion', methods=['GET', 'POST'])
 def iniciar_sesion():
@@ -1161,16 +1351,8 @@ def agenda():
         eventos_futuros.sort(key=lambda x: x[0])
         eventos_urgentes = [evento for _, evento in eventos_futuros[:4]]
 
-        clima = {
-            'ciudad': 'Medellín',
-            'temperatura': 24,
-            'estado': 'Parcialmente nublado',
-            'max': 27,
-            'min': 18,
-            'humedad': 72,
-            'lluvia': 20,
-            'icono': 'fa-cloud-sun'
-        }
+        clima = obtener_clima_actual('Medellín,CO')
+        pronostico = obtener_pronostico('Medellin,CO')
 
         return render_template(
             'agenda.html',
@@ -1178,7 +1360,8 @@ def agenda():
             eventos_urgentes=eventos_urgentes,
             eventos_json=json.dumps(eventos_list, ensure_ascii=False),
             usuario=current_user.nombre_usuario,
-            clima=clima
+            clima=clima,
+            pronostico=pronostico
         )
 
     except Exception as e:
@@ -1270,16 +1453,20 @@ def movimientos():
     try:
         cursor.execute('SELECT foto FROM usuarios WHERE id = ?', (usuario_id,))
         resultado_foto = cursor.fetchone()
-        usuario_foto = resultado_foto['foto'] if resultado_foto and resultado_foto['foto'] else None
+        usuario_foto = (
+            resultado_foto['foto']
+            if resultado_foto and resultado_foto['foto']
+            else "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
+        )
 
         if request.method == 'POST':
             fecha = request.form['fecha']
-            descripcion = request.form['descripcion']
+            descripcion = (request.form.get('descripcion') or '').strip()
             valor = Decimal(request.form['valor'])
             tipo = request.form['tipo']
 
             if tipo not in ['ingreso', 'gasto']:
-                flash('Tipo de movimiento inválido', 'danger')
+                flash('Tipo de movimiento inválido.', 'danger')
                 return redirect(url_for('movimientos'))
 
             cursor.execute("""
@@ -1287,21 +1474,78 @@ def movimientos():
                 VALUES (?, ?, ?, ?, ?)
             """, (fecha, descripcion, valor, tipo, usuario_id))
             conn.commit()
+
+            flash('Movimiento guardado correctamente.', 'success')
             return redirect(url_for('movimientos'))
 
+        # Disponible real
         cursor.execute("""
             SELECT COALESCE(SUM(
-                CASE WHEN tipo = 'ingreso' THEN valor
-                     WHEN tipo = 'gasto'   THEN -valor
-                     ELSE 0 END
+                CASE
+                    WHEN tipo IN ('ingreso', 'abono_a_recibir') THEN valor
+                    WHEN tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado') THEN -valor
+                    ELSE 0
+                END
             ), 0) AS saldo
-            FROM movimientos WHERE usuario_id = ?
+            FROM movimientos
+            WHERE usuario_id = ?
         """, (usuario_id,))
-        saldo_actual = cursor.fetchone()['saldo']
+        saldo_disponible = cursor.fetchone()['saldo']
+
+        # Ingresos del mes
+        if conn.is_postgres:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS ingresos_mes
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo = 'ingreso'
+                  AND DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)
+            """, (usuario_id,))
+        else:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS ingresos_mes
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo = 'ingreso'
+                  AND strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
+            """, (usuario_id,))
+        ingresos_mes = cursor.fetchone()['ingresos_mes']
+
+        # Gastos del mes
+        if conn.is_postgres:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS gastos_mes
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado')
+                  AND DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)
+            """, (usuario_id,))
+        else:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS gastos_mes
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado')
+                  AND strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
+            """, (usuario_id,))
+        gastos_mes = cursor.fetchone()['gastos_mes']
+
+        # Últimos movimientos
+        cursor.execute("""
+            SELECT fecha, descripcion, valor, tipo
+            FROM movimientos
+            WHERE usuario_id = ?
+            ORDER BY fecha DESC, id DESC
+            LIMIT 8
+        """, (usuario_id,))
+        ultimos_movimientos = cursor.fetchall()
 
         return render_template(
             'movimientos.html',
-            saldo_actual=saldo_actual,
+            saldo_actual=saldo_disponible,
+            ingresos_mes=ingresos_mes,
+            gastos_mes=gastos_mes,
+            ultimos_movimientos=ultimos_movimientos,
             usuario=current_user.nombre_usuario,
             usuario_foto=usuario_foto
         )
@@ -1309,10 +1553,11 @@ def movimientos():
         cursor.close()
         conn.close()
 
-
 # ══════════════════════════════════════════════════════════
 # FORMULARIO DE REGISTROS (ingreso / gasto / deuda / préstamo)
 # ══════════════════════════════════════════════════════════
+
+from datetime import datetime, timezone
 
 @app.route('/nuevo_registro', methods=['GET', 'POST'])
 @login_required
@@ -1322,6 +1567,7 @@ def formulario_registros():
 
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("SELECT id, nombre FROM categorias WHERE usuario_id = ?", (current_user.id,))
     categorias = cursor.fetchall()
     form.categoria.choices = [(c[0], c[1]) for c in categorias]
@@ -1330,56 +1576,99 @@ def formulario_registros():
         tipo = form.tipo.data
         fecha = form.fecha.data
         frecuencia = form.frecuencia.data
-        descripcion = form.descripcion.data
+        descripcion = (form.descripcion.data or '').strip()
         valor = form.valor.data
-        persona = form.persona.data
+        persona = (form.persona.data or '').strip()
         categoria_id = form.categoria.data if tipo in ['ingreso', 'gasto'] else None
         usuario_id = current_user.id
         movimiento_id = None
 
-        if tipo in ['ingreso', 'gasto']:
-            if conn.is_postgres:
+        try:
+            if tipo in ['ingreso', 'gasto']:
+                if conn.is_postgres:
+                    cursor.execute("""
+                        INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        RETURNING id
+                    """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
+                    movimiento_id = cursor.fetchone()['id']
+                else:
+                    cursor.execute("""
+                        INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
+                    movimiento_id = cursor.lastrowid
+
+                conn.commit()
+
+            elif tipo == 'deuda':
+                cursor.execute("""
+                    INSERT INTO deudas (
+                        descripcion, persona, usuario_id, monto_inicial, saldo,
+                        frecuencia, estado, fecha, fecha_creacion, tipo, movimiento_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    descripcion,
+                    persona,
+                    usuario_id,
+                    valor,
+                    valor,
+                    frecuencia,
+                    'pendiente',
+                    fecha,
+                    datetime.now(timezone.utc),
+                    tipo,
+                    movimiento_id
+                ))
+                conn.commit()
+
+            elif tipo == 'prestamo':
+                cursor.execute("""
+                    INSERT INTO prestamos (
+                        descripcion, persona, usuario_id, monto_inicial, saldo,
+                        frecuencia, estado, fecha, fecha_creacion, movimiento_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    descripcion,
+                    persona,
+                    usuario_id,
+                    valor,
+                    valor,
+                    frecuencia,
+                    'pendiente',
+                    fecha,
+                    datetime.now(timezone.utc),
+                    movimiento_id
+                ))
+
                 cursor.execute("""
                     INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    RETURNING id
-                """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
-                movimiento_id = cursor.fetchone()['id']
-            else:
-                cursor.execute("""
-                    INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (fecha, descripcion, valor, tipo, usuario_id, categoria_id))
-                movimiento_id = cursor.lastrowid
-            conn.commit()
+                    VALUES (?, ?, ?, ?, ?, NULL)
+                """, (
+                    fecha,
+                    f"Préstamo entregado a {persona}" if persona else "Préstamo entregado",
+                    valor,
+                    'prestamo_entregado',
+                    usuario_id
+                ))
+                conn.commit()
 
-        if tipo == 'deuda':
-            cursor.execute("""
-                INSERT INTO deudas (
-                    descripcion, persona, usuario_id, monto_inicial, saldo,
-                    frecuencia, estado, fecha, fecha_creacion, tipo, movimiento_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (descripcion, persona, usuario_id, valor, valor,
-                  frecuencia, 'pendiente', fecha, datetime.utcnow(), tipo, movimiento_id))
-            conn.commit()
+            flash('Registro guardado correctamente.', 'success')
+            return redirect(url_for('formulario_registros'))
 
-        elif tipo == 'prestamo':
-            cursor.execute("""
-                INSERT INTO prestamos (
-                    descripcion, persona, usuario_id, monto_inicial, saldo,
-                    frecuencia, estado, fecha, fecha_creacion, movimiento_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (descripcion, persona, usuario_id, valor, valor,
-                  frecuencia, 'pendiente', fecha, datetime.utcnow(), movimiento_id))
-            conn.commit()
-
-        cursor.close()
-        conn.close()
-        return redirect(url_for('formulario_registros'))
+        except Exception as e:
+            conn.rollback()
+            print("Error al guardar registro:", e)
+            flash('Error al guardar el registro.', 'danger')
 
     cursor.close()
     conn.close()
-    return render_template('formulario_registros.html', form=form, categoria_form=categoria_form)
+
+    return render_template(
+        'formulario_registros.html',
+        form=form,
+        categoria_form=categoria_form
+    )
 
 
 @app.route('/crear_categoria', methods=['POST'])
@@ -1442,8 +1731,9 @@ def registros():
         """, (usuario_id,))
         prestamos = cursor.fetchall()
 
+        # ✅ FIX: se agregó "persona" al SELECT
         cursor.execute("""
-            SELECT id, fecha, descripcion, monto_inicial, estado, saldo, tipo
+            SELECT id, fecha, descripcion, monto_inicial, estado, saldo, tipo, persona
             FROM deudas WHERE usuario_id = ? ORDER BY fecha DESC
         """, (usuario_id,))
         deudas = cursor.fetchall()
@@ -1478,7 +1768,6 @@ def registros():
             if fecha_obj >= limite_fecha:
                 deudas_agrupadas[formatear_fecha_humana(fecha_obj)].append(d)
 
-        # FIX: usar to_date() para evitar AttributeError con strings de SQLite
         hay_mas_mov = any(
             to_date(m['fecha']) and to_date(m['fecha']) < limite_fecha
             for m in movimientos_lista

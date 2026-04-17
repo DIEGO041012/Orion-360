@@ -16,6 +16,18 @@
     {% block extra_css %}
         <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}" />
     {% endblock %}
+
+    <!-- Aplicar tema ANTES de renderizar para evitar parpadeo -->
+    <script>
+        (function () {
+            if (localStorage.getItem('orion360_theme') === 'light') {
+                document.documentElement.classList.add('light-mode-early');
+            }
+        })();
+    </script>
+    <style>
+        html.light-mode-early body { background: #f5f5f3; }
+    </style>
 </head>
 
 <body class="{% block body_class %}{% endblock %}{% if current_user.is_authenticated %} autenticado{% endif %}">
@@ -115,6 +127,11 @@
                     </a>
                     <span class="welcome-text">Hola, <strong>{{ usuario }}</strong></span>
 
+                    <!-- Botón modo claro/oscuro -->
+                    <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema">
+                        <i id="theme-icon" class="fa-solid fa-sun"></i>
+                    </button>
+
                     <div class="user-menu">
                         <img src="{{ usuario_foto }}" alt="Foto de perfil" class="user-avatar" onclick="toggleUserDropdown()" />
                         <div class="dropdown-menu-barra" id="userDropdown">
@@ -133,6 +150,12 @@
                         <img src="{{ url_for('static', filename='img/logo-solo.png') }}" alt="Orion 360" />
                     </a>
                     <span style="flex:1"></span>
+
+                    <!-- Botón modo claro/oscuro (también para no autenticados) -->
+                    <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema">
+                        <i id="theme-icon" class="fa-solid fa-sun"></i>
+                    </button>
+
                     <a href="{{ url_for('iniciar_sesion') }}" class="auth-link">Iniciar sesión</a>
                     <a href="{{ url_for('registro') }}" class="auth-link">Registrarse</a>
                 {% endif %}
@@ -159,24 +182,49 @@
     {% if current_user.is_authenticated %}
     <script>
         const STORAGE_KEY = 'orion360_sidebar_collapsed';
+        const THEME_KEY   = 'orion360_theme';
 
-        /* Aplicar estado guardado ANTES de pintar — evita parpadeo */
+        /* Aplicar estado guardado ANTES de pintar — evita parpadeo sidebar */
         (function () {
             if (window.innerWidth > 768 && localStorage.getItem(STORAGE_KEY) === '1') {
                 document.body.classList.add('sidebar-collapsed');
             }
         })();
 
-        /* Toggle principal — mismo nombre que antes para no romper nada */
+        /* Aplicar tema guardado */
+        (function () {
+            const saved = localStorage.getItem(THEME_KEY);
+            const icon  = document.getElementById('theme-icon');
+            if (saved === 'light') {
+                document.body.classList.add('light-mode');
+                if (icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+            } else {
+                document.body.classList.remove('light-mode');
+                if (icon) { icon.classList.remove('fa-moon'); icon.classList.add('fa-sun'); }
+            }
+            /* Limpiar clase temporal del <html> */
+            document.documentElement.classList.remove('light-mode-early');
+        })();
+
+        /* Toggle tema */
+        window.toggleTheme = function () {
+            const isLight = document.body.classList.toggle('light-mode');
+            localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.classList.toggle('fa-sun',  !isLight);
+                icon.classList.toggle('fa-moon',  isLight);
+            }
+        };
+
+        /* Toggle sidebar */
         function toggleMenu() {
             if (window.innerWidth <= 768) {
-                /* Móvil: deslizar sidebar completo */
                 const sidebar = document.getElementById('sidebar');
                 const overlay = document.getElementById('overlay');
                 const open = sidebar.classList.toggle('activo');
                 overlay.classList.toggle('activo', open);
             } else {
-                /* Desktop: colapsar a íconos */
                 const collapsed = document.body.classList.toggle('sidebar-collapsed');
                 localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
             }
@@ -209,8 +257,33 @@
             });
         })();
     </script>
+    {% else %}
+    <script>
+        const THEME_KEY = 'orion360_theme';
+
+        /* Aplicar tema para páginas no autenticadas */
+        (function () {
+            const saved = localStorage.getItem(THEME_KEY);
+            const icon  = document.getElementById('theme-icon');
+            if (saved === 'light') {
+                document.body.classList.add('light-mode');
+                if (icon) { icon.classList.remove('fa-sun'); icon.classList.add('fa-moon'); }
+            }
+            document.documentElement.classList.remove('light-mode-early');
+        })();
+
+        window.toggleTheme = function () {
+            const isLight = document.body.classList.toggle('light-mode');
+            localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.classList.toggle('fa-sun',  !isLight);
+                icon.classList.toggle('fa-moon',  isLight);
+            }
+        };
+    </script>
     {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>
-</html>
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                     

@@ -85,6 +85,23 @@
                 </div>
             </div>
             {% endif %}
+            {% if pronostico %}
+                <div class="forecast-row">
+                    {% for dia in pronostico %}
+                    <div class="forecast-card">
+                        <div class="forecast-date">{{ dia.fecha }}</div>
+                        <div class="forecast-icon">
+                            <i class="fa-solid {{ dia.icono }}"></i>
+                        </div>
+                        <div class="forecast-temp">{{ dia.temp }}°C</div>
+                        <div class="forecast-state">{{ dia.estado }}</div>
+                        <div class="forecast-range">
+                            Máx: {{ dia.temp_max }}°C · Mín: {{ dia.temp_min }}°C
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
             <div class="calendar-grid" id="calendarWeekdays"></div>
             <div class="calendar-grid" id="calendarDays"></div>

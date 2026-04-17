@@ -3,182 +3,134 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
-<style>
-/* ═══════════════════════════════════════
-   Movimientos — Dashboard
-═══════════════════════════════════════ */
-.movimientos-page {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    max-width: 680px;
-}
-
-/* ── Encabezado con saldo ── */
-.saldo-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    padding: 28px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    position: relative;
-    overflow: hidden;
-}
-
-.saldo-card::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 180px;
-    height: 180px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(232,255,107,0.07) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-.saldo-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.saldo-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--border-mid);
-}
-
-.saldo-saludo {
-    font-size: 13.5px;
-    color: var(--text-muted);
-}
-
-.saldo-saludo strong {
-    color: var(--text-primary);
-    display: block;
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 2px;
-}
-
-.saldo-right {
-    text-align: right;
-}
-
-.saldo-label {
-    font-size: 11.5px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-}
-
-.saldo-valor {
-    font-size: 30px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--text-primary);
-    letter-spacing: -0.02em;
-}
-
-/* ── Acciones rápidas ── */
-.quick-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.btn-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 9px 18px;
-    border-radius: var(--radius-md);
-    font-size: 13.5px;
-    font-weight: 400;
-    border: 1px solid var(--border);
-    background: var(--bg-elevated);
-    color: var(--text-secondary);
-    cursor: pointer;
-    text-decoration: none;
-    transition: all var(--transition);
-}
-
-.btn-action:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-    border-color: var(--border-mid);
-}
-
-.btn-action.primary {
-    background: var(--accent);
-    color: var(--accent-text);
-    border-color: transparent;
-    font-weight: 500;
-}
-
-.btn-action.primary:hover { opacity: 0.88; }
-
-/* ── Info cards ── */
-.info-note {
-    background: var(--accent-dim);
-    border: 1px solid var(--accent-border);
-    border-radius: var(--radius-lg);
-    padding: 16px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--accent);
-    font-size: 13.5px;
-}
-
-.info-note i { font-size: 18px; flex-shrink: 0; }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_movimientos.css') }}">
 {% endblock %}
 
 {% block contenido %}
 <div class="movimientos-page">
 
-    <!-- Saldo card -->
-    <div class="saldo-card">
-        <div class="saldo-left">
-            <img src="{{ usuario_foto }}" alt="Foto de perfil" class="saldo-avatar">
-            <div class="saldo-saludo">
-                Bienvenido de vuelta
-                <strong>{{ usuario }}</strong>
+    <div class="movimientos-header">
+        <div>
+            <h1>Movimientos</h1>
+            <p>Controla tu dinero disponible y revisa el resumen de este mes.</p>
+        </div>
+
+        <div class="quick-actions">
+            <a href="{{ url_for('registros') }}" class="btn-action">
+                <i class="fa-solid fa-list-ul"></i> Ver registros
+            </a>
+            <a href="{{ url_for('formulario_registros') }}" class="btn-action primary">
+                <i class="fa-solid fa-plus"></i> Nuevo registro
+            </a>
+        </div>
+    </div>
+
+    <div class="resumen-cards">
+        <div class="saldo-card">
+            <div class="saldo-left">
+                <img src="{{ usuario_foto }}" alt="Foto de perfil" class="saldo-avatar">
+                <div class="saldo-saludo">
+                    Disponible actual
+                    <strong>{{ usuario }}</strong>
+                </div>
+            </div>
+            <div class="saldo-right">
+                <div class="saldo-label">Disponible</div>
+                <div class="saldo-valor">${{ "{:,.2f}".format(saldo_actual) }}</div>
             </div>
         </div>
-        <div class="saldo-right">
-            <div class="saldo-label">Saldo actual</div>
-            <div class="saldo-valor">${{ "{:,.2f}".format(saldo_actual) }}</div>
+
+        <div class="saldo-card">
+            <div class="saldo-left">
+                <div class="saldo-icon ingreso">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+                <div class="saldo-saludo">
+                    Este mes
+                    <strong>Ingresos acumulados</strong>
+                </div>
+            </div>
+            <div class="saldo-right">
+                <div class="saldo-label">Ingresos del mes</div>
+                <div class="saldo-valor">${{ "{:,.2f}".format(ingresos_mes) }}</div>
+            </div>
+        </div>
+
+        <div class="saldo-card">
+            <div class="saldo-left">
+                <div class="saldo-icon gasto">
+                    <i class="fa-solid fa-arrow-trend-down"></i>
+                </div>
+                <div class="saldo-saludo">
+                    Este mes
+                    <strong>Salidas acumuladas</strong>
+                </div>
+            </div>
+            <div class="saldo-right">
+                <div class="saldo-label">Gastos del mes</div>
+                <div class="saldo-valor">${{ "{:,.2f}".format(gastos_mes) }}</div>
+            </div>
         </div>
     </div>
 
-    <!-- Acciones -->
-    <div class="quick-actions">
-        <a href="{{ url_for('registros') }}" class="btn-action">
-            <i class="fa-solid fa-list-ul"></i> Ver movimientos
-        </a>
-        <a href="{{ url_for('formulario_registros') }}" class="btn-action primary">
-            <i class="fa-solid fa-plus"></i> Nuevo registro
-        </a>
-    </div>
-
-    <!-- Nota informativa -->
     <div class="info-note">
         <i class="fa-solid fa-circle-info"></i>
-        Registra tus ingresos y gastos para mantener un control preciso de tus finanzas.
+        El disponible descuenta gastos, pagos de deuda y préstamos entregados; también suma ingresos y dinero recuperado de préstamos.
+    </div>
+
+    <div class="tabla-widget">
+        <div class="tabla-widget-header">
+            <span class="tabla-widget-title">Últimos movimientos</span>
+        </div>
+
+        {% if ultimos_movimientos %}
+        <table class="tabla-movimientos">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Descripción</th>
+                    <th>Tipo</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in ultimos_movimientos %}
+                <tr>
+                    <td class="num">{{ item.fecha }}</td>
+                    <td>{{ item.descripcion }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if item.tipo in ['ingreso', 'abono_a_recibir'] %}
+                                badge-success
+                            {% elif item.tipo in ['gasto', 'abono_deuda', 'prestamo_entregado'] %}
+                                badge-danger
+                            {% else %}
+                                badge-neutral
+                            {% endif %}
+                        ">
+                            {{ item.tipo }}
+                        </span>
+                    </td>
+                    <td class="num
+                        {% if item.tipo in ['ingreso', 'abono_a_recibir'] %}
+                            tipo-ingreso
+                        {% elif item.tipo in ['gasto', 'abono_deuda', 'prestamo_entregado'] %}
+                            tipo-gasto
+                        {% endif %}
+                    ">
+                        {% if item.tipo in ['ingreso', 'abono_a_recibir'] %}+{% else %}-{% endif %}
+                        ${{ "{:,.2f}".format(item.valor) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            Aún no tienes movimientos registrados.
+        </div>
+        {% endif %}
     </div>
 
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/movimientos.js') }}"></script>
 {% endblock %}
