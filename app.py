@@ -633,7 +633,7 @@ def formatear_fecha_humana(fecha):
 # ══════════════════════════════════════════════════════════   
 def mapear_icono_clima(icono_openweather):
     mapa = {
-        '01d': 'fa-sun',
+        '01d': 'fa-sun',                                                                                                                                                            
         '01n': 'fa-moon',
         '02d': 'fa-cloud-sun',
         '02n': 'fa-cloud-moon',
@@ -1293,7 +1293,7 @@ def agenda():
                 flash('Actividad guardada correctamente.', 'success')
                 return redirect(url_for('agenda'))
             else:
-                flash('El título y la fecha son obligatorios.', 'error')
+                flash('El título y la fecha son obligatorios.', 'danger')
 
         cursor.execute(
             '''
@@ -1340,7 +1340,10 @@ def agenda():
                             '%Y-%m-%d %H:%M'
                         )
                     else:
-                        fecha_hora_evento = datetime.combine(fecha_obj, datetime.min.time())
+                        fecha_hora_evento = datetime.combine(
+                            fecha_obj,
+                            datetime.min.time()
+                        )
 
                     if fecha_obj > hoy or (fecha_obj == hoy and fecha_hora_evento >= ahora):
                         eventos_futuros.append((fecha_hora_evento, evento))
@@ -1351,8 +1354,17 @@ def agenda():
         eventos_futuros.sort(key=lambda x: x[0])
         eventos_urgentes = [evento for _, evento in eventos_futuros[:4]]
 
-        clima = obtener_clima_actual('Medellín,CO')
-        pronostico = obtener_pronostico('Medellin,CO')
+        try:
+            clima = obtener_clima_actual('Medellín,CO')
+        except Exception as e:
+            print(f'Error obteniendo clima actual: {e}')
+            clima = None
+
+        try:
+            pronostico = obtener_pronostico('Medellin,CO')
+        except Exception as e:
+            print(f'Error obteniendo pronóstico: {e}')
+            pronostico = []
 
         return render_template(
             'agenda.html',
@@ -1366,14 +1378,22 @@ def agenda():
 
     except Exception as e:
         print(f'Error en agenda: {e}')
-        flash('Ocurrió un error al cargar la agenda.', 'error')
-        return redirect(url_for('agenda'))
+        flash('Ocurrió un error al cargar la agenda.', 'danger')
+        return render_template(
+            'agenda.html',
+            eventos=[],
+            eventos_urgentes=[],
+            eventos_json='[]',
+            usuario=current_user.nombre_usuario,
+            clima=None,
+            pronostico=[]
+        )
 
     finally:
         cursor.close()
         conn.close()
 
-
+        
 
 @app.route('/eliminar_cita/<int:cita_id>')
 @login_required
