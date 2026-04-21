@@ -6,7 +6,6 @@ Flask-Login
 Flask-WTF
 Flask-Cors
 WTForms
-xhtml2pdf==0.2.16
 psycopg2-binary
 Werkzeug
 gunicorn
@@ -19,3 +18,5 @@ html5lib
 six
 flask-mail
 itsdangerous
+python-bidi==0.4.2
+xhtml2pdf==0.2.16
