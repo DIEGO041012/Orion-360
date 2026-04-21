@@ -3,17 +3,14 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-/* ═══════════════════════════════════════
-   Panel — Layout
-═══════════════════════════════════════ */
 .panel-page {
     display: flex;
     flex-direction: column;
     gap: 24px;
 }
 
-/* ── Encabezado de bienvenida ── */
 .panel-welcome {
     display: flex;
     align-items: center;
@@ -38,6 +35,7 @@
 .panel-welcome-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .btn-panel {
@@ -71,7 +69,6 @@
 
 .btn-panel.primary:hover { opacity: 0.88; }
 
-/* ── Cards de resumen ── */
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -91,25 +88,24 @@
     overflow: hidden;
 }
 
-.summary-card:hover {
-    border-color: var(--border);
-}
+.summary-card:hover { border-color: var(--border); }
 
 .summary-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    inset: 0 0 auto 0;
     height: 2px;
     background: var(--card-accent, transparent);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .summary-card.income  { --card-accent: var(--green); }
 .summary-card.expense { --card-accent: var(--red); }
 .summary-card.debt    { --card-accent: var(--amber); }
 .summary-card.loan    { --card-accent: var(--blue); }
+.summary-card.task    { --card-accent: #8b5cf6; }
+.summary-card.event   { --card-accent: #ec4899; }
+.summary-card.net     { --card-accent: #14b8a6; }
+.summary-card.wallet  { --card-accent: #f59e0b; }
 
 .summary-header {
     display: flex;
@@ -139,6 +135,10 @@
 .summary-card.expense .summary-icon { background: var(--red-dim);    color: var(--red); }
 .summary-card.debt    .summary-icon { background: var(--amber-dim);  color: var(--amber); }
 .summary-card.loan    .summary-icon { background: var(--blue-dim);   color: var(--blue); }
+.summary-card.task    .summary-icon { background: rgba(139,92,246,.12); color: #8b5cf6; }
+.summary-card.event   .summary-icon { background: rgba(236,72,153,.12); color: #ec4899; }
+.summary-card.net     .summary-icon { background: rgba(20,184,166,.12); color: #14b8a6; }
+.summary-card.wallet  .summary-icon { background: rgba(245,158,11,.12); color: #f59e0b; }
 
 .summary-value {
     font-size: 24px;
@@ -165,14 +165,30 @@
     flex-shrink: 0;
 }
 
-/* ── Sección de dos columnas ── */
 .panel-bottom {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
 }
 
-/* ── Widget base ── */
+.panel-bottom-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+}
+
+.chart-grid-top {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 16px;
+}
+
+.chart-grid-bottom {
+    display: grid;
+    grid-template-columns: 1.4fr .8fr .8fr;
+    gap: 16px;
+}
+
 .widget {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
@@ -198,6 +214,7 @@
     font-size: 12px;
     color: var(--text-muted);
     transition: color var(--transition);
+    text-decoration: none;
 }
 
 .widget-link:hover { color: var(--text-primary); }
@@ -206,7 +223,15 @@
     padding: 6px 0;
 }
 
-/* ── Tabla de movimientos ── */
+.chart-body {
+    padding: 16px 18px 18px;
+    height: 320px;
+}
+
+.chart-body.small {
+    height: 260px;
+}
+
 .mov-table {
     width: 100%;
     border-collapse: collapse;
@@ -255,27 +280,31 @@
 
 .badge-green  { background: var(--green-dim);  color: var(--green); }
 .badge-red    { background: var(--red-dim);    color: var(--red); }
-.badge-amber  { background: var(--amber-dim);  color: var(--amber); }
-.badge-blue   { background: var(--blue-dim);   color: var(--blue); }
 
-/* ── Lista de tareas ── */
-.task-list {
+.task-list,
+.event-list,
+.quick-list {
     display: flex;
     flex-direction: column;
 }
 
-.task-item {
+.task-item,
+.event-item,
+.quick-item {
     display: flex;
     align-items: center;
-    gap: 11px;
+    gap: 12px;
     padding: 10px 18px;
     border-bottom: 1px solid var(--border-subtle);
-    cursor: default;
-    transition: background var(--transition);
 }
 
-.task-item:last-child { border-bottom: none; }
-.task-item:hover { background: var(--bg-hover); }
+.quick-item {
+    justify-content: space-between;
+}
+
+.task-item:last-child,
+.event-item:last-child,
+.quick-item:last-child { border-bottom: none; }
 
 .task-check {
     width: 16px;
@@ -283,23 +312,6 @@
     border-radius: 50%;
     border: 1.5px solid var(--border-mid);
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.task-check.done {
-    background: var(--green);
-    border-color: var(--green);
-}
-
-.task-check.done::after {
-    content: '';
-    width: 5px;
-    height: 3px;
-    border-left: 1.5px solid #000;
-    border-bottom: 1.5px solid #000;
-    transform: rotate(-45deg) translateY(-1px);
 }
 
 .task-text {
@@ -311,19 +323,52 @@
     white-space: nowrap;
 }
 
-.task-text.done {
-    text-decoration: line-through;
-    color: var(--text-muted);
-}
-
-.task-due {
+.task-due,
+.event-meta {
     font-size: 11.5px;
     color: var(--text-muted);
     font-family: var(--font-mono);
     white-space: nowrap;
 }
 
-/* ── Empty state ── */
+.event-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    background: rgba(236,72,153,.12);
+    color: #ec4899;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.event-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.event-title {
+    font-size: 13.5px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.quick-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.quick-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
 .empty-state {
     padding: 28px 18px;
     text-align: center;
@@ -331,14 +376,20 @@
     font-size: 13px;
 }
 
-/* ── Responsive ── */
+@media (max-width: 1200px) {
+    .summary-grid { grid-template-columns: repeat(4, 1fr); }
+    .panel-bottom-3,
+    .chart-grid-bottom,
+    .chart-grid-top { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 1024px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .panel-bottom { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
     .summary-grid { grid-template-columns: 1fr 1fr; }
-    .panel-bottom { grid-template-columns: 1fr; }
     .panel-welcome { flex-direction: column; align-items: flex-start; }
 }
 
@@ -351,15 +402,20 @@
 {% block contenido %}
 <div class="panel-page">
 
-    <!-- Bienvenida -->
     <div class="panel-welcome">
         <div class="panel-welcome-left">
             <h1>Buenos días, {{ current_user.nombre_usuario }} 👋</h1>
-            <p>Aquí tienes un resumen de tu situación financiera.</p>
+            <p>Aquí tienes un resumen más completo de tu actividad, finanzas y organización.</p>
         </div>
         <div class="panel-welcome-actions">
             <a href="{{ url_for('registros') }}" class="btn-panel">
                 <i class="fa-solid fa-list"></i> Movimientos
+            </a>
+            <a href="{{ url_for('tareas') }}" class="btn-panel">
+                <i class="fa-solid fa-check-double"></i> Tareas
+            </a>
+            <a href="{{ url_for('agenda') }}" class="btn-panel">
+                <i class="fa-solid fa-calendar-days"></i> Agenda
             </a>
             <a href="{{ url_for('formulario_registros') }}" class="btn-panel primary">
                 <i class="fa-solid fa-plus"></i> Nuevo registro
@@ -367,18 +423,14 @@
         </div>
     </div>
 
-    <!-- Cards resumen -->
     <div class="summary-grid">
-
         <div class="summary-card income">
             <div class="summary-header">
                 <span class="summary-label">Ingresos</span>
                 <span class="summary-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
             </div>
             <div class="summary-value">${{ "%.2f"|format(total_ingresos) }}</div>
-            <div class="summary-sub">
-                <span class="dot" style="background:var(--green)"></span> Este período
-            </div>
+            <div class="summary-sub"><span class="dot" style="background:var(--green)"></span> Histórico</div>
         </div>
 
         <div class="summary-card expense">
@@ -387,9 +439,7 @@
                 <span class="summary-icon"><i class="fa-solid fa-arrow-trend-down"></i></span>
             </div>
             <div class="summary-value">${{ "%.2f"|format(total_gastos) }}</div>
-            <div class="summary-sub">
-                <span class="dot" style="background:var(--red)"></span> Este período
-            </div>
+            <div class="summary-sub"><span class="dot" style="background:var(--red)"></span> Histórico</div>
         </div>
 
         <div class="summary-card debt">
@@ -416,12 +466,105 @@
             </div>
         </div>
 
+        <div class="summary-card task">
+            <div class="summary-header">
+                <span class="summary-label">Tareas pendientes</span>
+                <span class="summary-icon"><i class="fa-solid fa-list-check"></i></span>
+            </div>
+            <div class="summary-value">{{ total_tareas_pendientes }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:#8b5cf6"></span>
+                {{ total_tareas_completadas }} completadas
+            </div>
+        </div>
+
+        <div class="summary-card event">
+            <div class="summary-header">
+                <span class="summary-label">Eventos próximos</span>
+                <span class="summary-icon"><i class="fa-solid fa-calendar-day"></i></span>
+            </div>
+            <div class="summary-value">{{ total_eventos_proximos }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:#ec4899"></span>
+                Próximas fechas
+            </div>
+        </div>
+
+        <div class="summary-card net">
+            <div class="summary-header">
+                <span class="summary-label">Saldo neto</span>
+                <span class="summary-icon"><i class="fa-solid fa-scale-balanced"></i></span>
+            </div>
+            <div class="summary-value">${{ "%.2f"|format(saldo_neto) }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:#14b8a6"></span>
+                Saldo real disponible
+            </div>
+        </div>
+
+        <div class="summary-card wallet">
+            <div class="summary-header">
+                <span class="summary-label">Wallet</span>
+                <span class="summary-icon"><i class="fa-solid fa-wallet"></i></span>
+            </div>
+            <div class="summary-value">${{ "%.2f"|format(saldo_wallet or 0) }}</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:#f59e0b"></span>
+                Disponible
+            </div>
+        </div>
     </div>
 
-    <!-- Sección inferior: movimientos + tareas -->
-    <div class="panel-bottom">
+    <div class="chart-grid-top">
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Ingresos vs gastos por mes</span>
+            </div>
+            <div class="chart-body">
+                <canvas id="incomeExpenseChart"></canvas>
+            </div>
+        </div>
 
-        <!-- Últimos movimientos -->
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Gastos por categoría</span>
+            </div>
+            <div class="chart-body">
+                <canvas id="categoryExpenseChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-grid-bottom">
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Saldo disponible en el tiempo</span>
+            </div>
+            <div class="chart-body small">
+                <canvas id="balanceTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Estado de tareas</span>
+            </div>
+            <div class="chart-body small">
+                <canvas id="taskStatusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Deudas vs préstamos</span>
+            </div>
+            <div class="chart-body small">
+                <canvas id="debtLoanChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-bottom">
         <div class="widget">
             <div class="widget-header">
                 <span class="widget-title">Últimos movimientos</span>
@@ -453,7 +596,6 @@
             </div>
         </div>
 
-        <!-- Tareas pendientes -->
         <div class="widget">
             <div class="widget-header">
                 <span class="widget-title">Tareas pendientes</span>
@@ -480,7 +622,175 @@
                 {% endif %}
             </div>
         </div>
+    </div>
 
+    <div class="panel-bottom-3">
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Próximas actividades</span>
+                <a href="{{ url_for('agenda') }}" class="widget-link">Ver agenda →</a>
+            </div>
+            <div class="widget-body">
+                {% if proximos_eventos %}
+                <div class="event-list">
+                    {% for evento in proximos_eventos %}
+                    <div class="event-item">
+                        <div class="event-icon">
+                            <i class="fa-solid fa-calendar"></i>
+                        </div>
+                        <div class="event-main">
+                            <div class="event-title">{{ evento.titulo }}</div>
+                            <div class="event-meta">
+                                {{ evento.fecha }}{% if evento.hora %} · {{ evento.hora }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">No hay actividades próximas</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Resumen rápido</span>
+            </div>
+            <div class="widget-body">
+                <div class="quick-list">
+                    <div class="quick-item">
+                        <span class="quick-label">Ingresos registrados</span>
+                        <span class="quick-value">${{ "%.2f"|format(total_ingresos) }}</span>
+                    </div>
+                    <div class="quick-item">
+                        <span class="quick-label">Gastos registrados</span>
+                        <span class="quick-value">${{ "%.2f"|format(total_gastos) }}</span>
+                    </div>
+                    <div class="quick-item">
+                        <span class="quick-label">Tareas activas</span>
+                        <span class="quick-value">{{ total_tareas_pendientes }}</span>
+                    </div>
+                    <div class="quick-item">
+                        <span class="quick-label">Eventos próximos</span>
+                        <span class="quick-value">{{ total_eventos_proximos }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="widget">
+            <div class="widget-header">
+                <span class="widget-title">Atajos</span>
+            </div>
+            <div class="widget-body">
+                <div class="quick-list">
+                    <div class="quick-item">
+                        <a href="{{ url_for('formulario_registros') }}" class="widget-link">Crear movimiento</a>
+                    </div>
+                    <div class="quick-item">
+                        <a href="{{ url_for('tareas') }}" class="widget-link">Administrar tareas</a>
+                    </div>
+                    <div class="quick-item">
+                        <a href="{{ url_for('agenda') }}" class="widget-link">Ver agenda</a>
+                    </div>
+                    <div class="quick-item">
+                        <a href="{{ url_for('estadisticas') }}" class="widget-link">Abrir estadísticas</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+const chartData = {{ chart_data | tojson }};
+
+new Chart(document.getElementById('incomeExpenseChart'), {
+    type: 'bar',
+    data: {
+        labels: chartData.incomeExpense.labels,
+        datasets: [
+            {
+                label: 'Ingresos',
+                data: chartData.incomeExpense.ingresos,
+                borderWidth: 1
+            },
+            {
+                label: 'Gastos',
+                data: chartData.incomeExpense.gastos,
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+new Chart(document.getElementById('categoryExpenseChart'), {
+    type: 'doughnut',
+    data: {
+        labels: chartData.categoryExpense.labels,
+        datasets: [{
+            data: chartData.categoryExpense.values,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+new Chart(document.getElementById('balanceTrendChart'), {
+    type: 'line',
+    data: {
+        labels: chartData.balanceTrend.labels,
+        datasets: [{
+            label: 'Saldo',
+            data: chartData.balanceTrend.values,
+            tension: 0.35,
+            fill: false,
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+new Chart(document.getElementById('taskStatusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: chartData.taskStatus.labels,
+        datasets: [{
+            data: chartData.taskStatus.values,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+new Chart(document.getElementById('debtLoanChart'), {
+    type: 'bar',
+    data: {
+        labels: chartData.debtLoan.labels,
+        datasets: [{
+            label: 'Monto',
+            data: chartData.debtLoan.values,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+</script>
 {% endblock %}

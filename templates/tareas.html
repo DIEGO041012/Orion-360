@@ -4,9 +4,6 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
 <style>
-/* ═══════════════════════════════════════
-   Tareas — Kanban Board
-═══════════════════════════════════════ */
 .tareas-page {
     display: flex;
     flex-direction: column;
@@ -27,7 +24,6 @@
     color: var(--text-primary);
 }
 
-/* ── Kanban Board ── */
 .kanban-board {
     display: flex;
     gap: 12px;
@@ -71,7 +67,6 @@
 .kanban-board::-webkit-scrollbar-track { background: transparent; }
 .kanban-board::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* ── Columna ── */
 .kanban-column {
     min-width: 264px;
     max-width: 264px;
@@ -87,17 +82,13 @@
     overflow: hidden;
 }
 
-.kanban-column:hover {
-    border-color: var(--border);
-}
+.kanban-column:hover { border-color: var(--border); }
 
-/* Drop zone activo */
 .kanban-column.drag-over {
     border-color: var(--accent);
     background: var(--accent-dim);
 }
 
-/* ── Header de columna ── */
 .kanban-column-header {
     display: flex;
     align-items: center;
@@ -105,6 +96,14 @@
     padding: 12px 14px;
     border-bottom: 1px solid var(--border-subtle);
     flex-shrink: 0;
+}
+
+.column-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
 }
 
 .kanban-column-header h3 {
@@ -117,7 +116,23 @@
     white-space: nowrap;
 }
 
-/* ── Tareas dentro de columna ── */
+.list-edit-button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: var(--radius-xs);
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+
+.list-edit-button:hover {
+    background: var(--bg-active);
+    color: var(--text-primary);
+}
+
 .kanban-tasks {
     padding: 8px;
     display: flex;
@@ -180,13 +195,11 @@
     width: fit-content;
 }
 
-.tarea-badge-pendiente { background: rgba(251, 191, 36, 0.18); color: #b45309; }
-.tarea-badge-en-progreso { background: rgba(59, 130, 246, 0.15); color: #1d4ed8; }
-.tarea-badge-completada { background: rgba(34, 197, 94, 0.14); color: #166534; }
+.tarea-badge-pendiente   { background: rgba(251,191,36,0.18);  color: #b45309; }
+.tarea-badge-en-progreso { background: rgba(59,130,246,0.15);  color: #1d4ed8; }
+.tarea-badge-completada  { background: rgba(34,197,94,0.14);   color: #166534; }
 
-.kanban-task .dropdown-container-tarea {
-    flex-shrink: 0;
-}
+.kanban-task .dropdown-container-tarea { flex-shrink: 0; }
 
 .kanban-task:hover {
     border-color: var(--border-mid);
@@ -208,8 +221,8 @@
     word-break: break-word;
 }
 
-/* ── Botón de acciones en tarea ── */
-.dropdown-container-tarea {
+.dropdown-container-tarea,
+.dropdown-container-tareas {
     position: relative;
     flex-shrink: 0;
 }
@@ -248,7 +261,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 
-.dropdown-container-tarea.show    .dropdown-menu-tarea,
+.dropdown-container-tarea.show   .dropdown-menu-tarea,
 .dropdown-container-tareas.show  .dropdown-menu-tareas { display: block; }
 
 .dropdown-menu-tarea button,
@@ -277,13 +290,9 @@
     color: var(--text-primary);
 }
 
-/* Eliminar — color rojo */
 .dropdown-menu-tarea form button,
-.dropdown-menu-tareas form button {
-    color: var(--red);
-}
+.dropdown-menu-tareas form button { color: var(--red); }
 
-/* ── Footer de columna ── */
 .kanban-column-footer {
     padding: 8px;
     border-top: 1px solid var(--border-subtle);
@@ -311,7 +320,6 @@
     color: var(--text-primary);
 }
 
-/* ── Formulario nueva tarea ── */
 .add-task-form {
     padding: 0 8px 8px;
     display: flex;
@@ -368,7 +376,6 @@
     color: var(--text-primary);
 }
 
-/* ── Nueva lista placeholder ── */
 .new-list-placeholder {
     background: transparent;
     border: 1px dashed var(--border-subtle);
@@ -379,7 +386,6 @@
     background: var(--bg-surface);
 }
 
-/* ── Formulario nueva lista ── */
 #nueva-lista-form {
     padding: 8px;
     display: flex;
@@ -399,7 +405,6 @@
     outline: none;
 }
 
-/* ── Modales ── */
 .modal {
     display: none;
     position: fixed;
@@ -480,42 +485,50 @@
     color: var(--text-primary);
 }
 
-    @media (max-width: 1140px) {
-        .tareas-page { height: auto; }
-        .kanban-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; overflow-x: hidden; }
-        .kanban-column { min-width: 0; max-width: none; }
-        .kanban-column-footer, .kanban-column-header { padding: 12px; }
+@media (max-width: 1140px) {
+    .tareas-page { height: auto; }
+    .kanban-board {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 14px;
+        overflow-x: hidden;
     }
+    .kanban-column { min-width: 0; max-width: none; }
+    .kanban-column-footer, .kanban-column-header { padding: 12px; }
+}
 
-    @media (max-width: 768px) {
-        .tareas-page { padding-bottom: 20px; }
-        .kanban-board { grid-template-columns: 1fr; }
-        .kanban-column { width: 100%; }
-        .kanban-task { flex-direction: column; align-items: stretch; }
-        .task-meta { width: 100%; }
-        .status-form { width: 100%; }
-        .dropdown-container-tarea { align-self: flex-end; }
-        .modal-content { min-width: 100%; max-width: 100%; padding: 20px; margin: 0 12px; }
-    }
+@media (max-width: 768px) {
+    .tareas-page { padding-bottom: 20px; }
+    .kanban-board { grid-template-columns: 1fr; }
+    .kanban-column { width: 100%; }
+    .kanban-task { flex-direction: column; align-items: stretch; }
+    .task-meta { width: 100%; }
+    .status-form { width: 100%; }
+    .dropdown-container-tarea { align-self: flex-end; }
+    .modal-content { min-width: 100%; max-width: 100%; padding: 20px; margin: 0 12px; }
+}
 
-    @media (max-width: 540px) {
-        .kanban-column { border-radius: 16px; }
-        .kanban-column-header, .kanban-column-footer { padding: 10px; }
-        .add-list-button, .btn-add-confirm, .btn-add-cancel { font-size: 12px; padding: 8px 10px; }
-    }
+@media (max-width: 540px) {
+    .kanban-column { border-radius: 16px; }
+    .kanban-column-header, .kanban-column-footer { padding: 10px; }
+    .add-list-button, .btn-add-confirm, .btn-add-cancel { font-size: 12px; padding: 8px 10px; }
+}
 </style>
 {% endblock %}
 
 {% block contenido %}
+<div id="toast-mensaje" class="toast-mensaje"></div>
+
 <div class="tareas-page">
     <div class="tareas-header">
         <h1>Tablero de tareas</h1>
     </div>
+
     <div class="kanban-board" ondragover="event.preventDefault();" ondrop="onDropBoard(event)">
         {% for lista in listas %}
         <div class="kanban-column"
              id="columna-{{ lista.id }}"
-             style="{% if lista.color %}border-top: 2px solid {{ lista.color }};{% endif %}"
+             style="{% if lista.color %}border-top: 3px solid {{ lista.color }};{% endif %}"
              ondragover="event.preventDefault(); this.classList.add('drag-over')"
              ondragleave="this.classList.remove('drag-over')"
              ondrop="this.classList.remove('drag-over'); onDrop(event, {{ lista.id }})">
@@ -524,7 +537,9 @@
             <div class="kanban-column-header">
                 <div class="column-title">
                     <h3>{{ lista.nombre }}</h3>
-                    <button class="list-edit-button" type="button" onclick="document.getElementById('modal-rename-{{ lista.id }}').style.display='flex'" title="Renombrar lista">
+                    <button class="list-edit-button" type="button"
+                            onclick="document.getElementById('modal-rename-{{ lista.id }}').style.display='flex'"
+                            title="Renombrar lista">
                         <i class="fa-solid fa-pen"></i>
                     </button>
                 </div>
@@ -558,22 +573,29 @@
 
                     <div class="task-meta">
                         <span class="tarea-titulo">{{ tarea.titulo | e }}</span>
-                        <span class="tarea-badge tarea-badge-{{ (tarea.estado or 'pendiente').replace(' ', '-') }}">{{ (tarea.estado or 'pendiente') | replace('en progreso', 'En progreso') | replace('completada', 'Completada') | replace('pendiente', 'Pendiente') }}</span>
+                        <span class="tarea-badge tarea-badge-{{ (tarea.estado or 'pendiente').replace(' ', '-') }}">
+                            {{ (tarea.estado or 'pendiente')
+                                | replace('en progreso', 'En progreso')
+                                | replace('completada',  'Completada')
+                                | replace('pendiente',   'Pendiente') }}
+                        </span>
                     </div>
+
                     <form method="POST" action="{{ url_for('actualizar_estado_tarea') }}" class="status-form">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="id" value="{{ tarea.id }}">
                         <select name="estado" onchange="this.form.submit()">
-                            <option value="pendiente" {% if tarea.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="pendiente"   {% if tarea.estado == 'pendiente'   %}selected{% endif %}>Pendiente</option>
                             <option value="en progreso" {% if tarea.estado == 'en progreso' %}selected{% endif %}>En progreso</option>
-                            <option value="completada" {% if tarea.estado == 'completada' %}selected{% endif %}>Completada</option>
+                            <option value="completada"  {% if tarea.estado == 'completada'  %}selected{% endif %}>Completada</option>
                         </select>
                     </form>
 
                     <div class="dropdown-container-tarea">
                         <button class="dropdown-toggle" onclick="toggleTareaMenu({{ tarea.id }})">⋮</button>
                         <div class="dropdown-menu-tarea" id="tarea-menu-{{ tarea.id }}">
-                            <button type="button" onclick="abrirModalEditarTarea({{ tarea.id }}, '{{ tarea.titulo | e }}')">
+                            <button type="button"
+                                    onclick="abrirModalEditarTarea({{ tarea.id }}, '{{ tarea.titulo | e }}')">
                                 Editar
                             </button>
                             <form method="POST" action="{{ url_for('eliminar_tarea') }}">
@@ -683,12 +705,33 @@
                 </div>
             </form>
         </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 const csrfToken = "{{ csrf_token() }}";
+
+/* ── Mapa nombre de columna → estado ── */
+const ESTADO_POR_NOMBRE = {
+    'planeación':  'pendiente',
+    'planeacion':  'pendiente',
+    'pendiente':   'pendiente',
+    'en proceso':  'en progreso',
+    'en progreso': 'en progreso',
+    'en curso':    'en progreso',
+    'terminado':   'completada',
+    'terminada':   'completada',
+    'completado':  'completada',
+    'completada':  'completada',
+    'done':        'completada',
+};
+
+function inferirEstado(nombreColumna) {
+    const clave = (nombreColumna || '').toLowerCase().trim();
+    return ESTADO_POR_NOMBRE[clave] || null;
+}
 
 /* ── Drag and Drop ── */
 let tareaArrastradaId = null;
@@ -707,10 +750,23 @@ function onDrop(event, nuevaListaId) {
 
     document.querySelectorAll('.kanban-task').forEach(t => t.classList.remove('dragging'));
 
+    const columna = document.getElementById(`columna-${nuevaListaId}`);
+    const nombreColumna = columna
+        ? columna.querySelector('.kanban-column-header h3')?.textContent?.trim()
+        : '';
+    const nuevoEstado = inferirEstado(nombreColumna);
+
     fetch('/actualizar_lista', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-        body: JSON.stringify({ id: tareaId, nuevo_lista_id: nuevaListaId })
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            id: tareaId,
+            nuevo_lista_id: nuevaListaId,
+            nuevo_estado: nuevoEstado
+        })
     })
     .then(r => r.json())
     .then(data => {
@@ -777,7 +833,6 @@ function cerrarModal(id) {
     document.getElementById(id).style.display = 'none';
 }
 
-/* Cerrar modal al click fuera */
 document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', function (e) {
         if (e.target === m) m.style.display = 'none';

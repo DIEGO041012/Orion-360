@@ -979,66 +979,292 @@ def panel_usuario():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute('SELECT foto FROM usuarios WHERE id = ?', (usuario_id,))
-    resultado = cursor.fetchone()
-    foto = (
-        resultado['foto']
-        if resultado and resultado['foto']
-        else "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
-    )
+    try:
+        # Usuario
+        cursor.execute('SELECT foto, saldo_wallet FROM usuarios WHERE id = ?', (usuario_id,))
+        usuario_data = cursor.fetchone()
 
-    cursor.execute("""
-        SELECT fecha, descripcion, valor, tipo FROM movimientos
-        WHERE usuario_id = ? ORDER BY fecha DESC LIMIT 5
-    """, (usuario_id,))
-    ultimos_movimientos = cursor.fetchall()
+        foto = (
+            usuario_data['foto']
+            if usuario_data and usuario_data['foto']
+            else "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
+        )
+        saldo_wallet = float(usuario_data['saldo_wallet'] or 0) if usuario_data else 0
 
-    cursor.execute("""
-        SELECT titulo, fecha_limite FROM tareas
-        WHERE usuario_id = ? AND fecha_limite >= CURRENT_DATE
-        ORDER BY fecha_limite ASC LIMIT 3
-    """, (usuario_id,))
-    tareas_pendientes = cursor.fetchall()
+        # Últimos movimientos
+        cursor.execute("""
+            SELECT fecha, descripcion, valor, tipo
+            FROM movimientos
+            WHERE usuario_id = ?
+            ORDER BY fecha DESC, id DESC
+            LIMIT 5
+        """, (usuario_id,))
+        ultimos_movimientos = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT COALESCE(SUM(valor), 0) AS total_ingresos
-        FROM movimientos WHERE usuario_id = ? AND tipo = 'ingreso'
-    """, (usuario_id,))
-    total_ingresos = cursor.fetchone()['total_ingresos']
+        # Tareas pendientes
+        cursor.execute("""
+            SELECT titulo, fecha_limite, estado
+            FROM tareas
+            WHERE usuario_id = ?
+              AND COALESCE(estado, 'pendiente') != 'completada'
+            ORDER BY
+                CASE WHEN fecha_limite IS NULL THEN 1 ELSE 0 END,
+                fecha_limite ASC
+            LIMIT 5
+        """, (usuario_id,))
+        tareas_pendientes = cursor.fetchall()
 
-    cursor.execute("""
-        SELECT COALESCE(SUM(valor), 0) AS total_gastos
-        FROM movimientos WHERE usuario_id = ? AND tipo = 'gasto'
-    """, (usuario_id,))
-    total_gastos = cursor.fetchone()['total_gastos']
+        # Conteos tareas
+        cursor.execute("""
+            SELECT COUNT(*) AS total_tareas
+            FROM tareas
+            WHERE usuario_id = ?
+              AND COALESCE(estado, 'pendiente') != 'completada'
+        """, (usuario_id,))
+        total_tareas_pendientes = int(cursor.fetchone()['total_tareas'] or 0)
 
-    cursor.execute("""
-        SELECT COUNT(*) AS total_deudas_pendientes, SUM(saldo) AS saldo_deudas_pendientes
-        FROM deudas WHERE usuario_id = ? AND estado = 'pendiente'
-    """, (usuario_id,))
-    deudas_pendientes = cursor.fetchone()
+        cursor.execute("""
+            SELECT COUNT(*) AS total_tareas_completadas
+            FROM tareas
+            WHERE usuario_id = ?
+              AND estado = 'completada'
+        """, (usuario_id,))
+        total_tareas_completadas = int(cursor.fetchone()['total_tareas_completadas'] or 0)
 
-    cursor.execute("""
-        SELECT COUNT(*) AS total_prestamos, SUM(saldo) AS saldo_prestamos
-        FROM prestamos WHERE usuario_id = ?
-    """, (usuario_id,))
-    prestamos = cursor.fetchone()
+        # Próximos eventos
+        cursor.execute("""
+            SELECT titulo, fecha, hora
+            FROM agenda
+            WHERE usuario_id = ?
+              AND fecha >= CURRENT_DATE
+            ORDER BY fecha ASC, hora ASC
+            LIMIT 5
+        """, (usuario_id,))
+        proximos_eventos = cursor.fetchall()
 
-    cursor.close()
-    conn.close()
+        cursor.execute("""
+            SELECT COUNT(*) AS total_eventos_proximos
+            FROM agenda
+            WHERE usuario_id = ?
+              AND fecha >= CURRENT_DATE
+        """, (usuario_id,))
+        total_eventos_proximos = int(cursor.fetchone()['total_eventos_proximos'] or 0)
 
-    return render_template(
-        'panel_usuario.html',
-        usuario=current_user.nombre_usuario,
-        usuario_foto=foto,
-        ultimos_movimientos=ultimos_movimientos,
-        tareas_pendientes=tareas_pendientes,
-        total_ingresos=total_ingresos,
-        total_gastos=total_gastos,
-        deudas_pendientes=deudas_pendientes,
-        prestamos=prestamos
-    )
+        # Totales financieros base
+        cursor.execute("""
+            SELECT COALESCE(SUM(valor), 0) AS total_ingresos
+            FROM movimientos
+            WHERE usuario_id = ? AND tipo = 'ingreso'
+        """, (usuario_id,))
+        total_ingresos = float(cursor.fetchone()['total_ingresos'] or 0)
 
+        cursor.execute("""
+            SELECT COALESCE(SUM(valor), 0) AS total_gastos
+            FROM movimientos
+            WHERE usuario_id = ? AND tipo = 'gasto'
+        """, (usuario_id,))
+        total_gastos = float(cursor.fetchone()['total_gastos'] or 0)
+
+        # Saldo neto real / disponible real
+        cursor.execute("""
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN tipo IN ('ingreso', 'abono_a_recibir') THEN valor
+                    WHEN tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado') THEN -valor
+                    ELSE 0
+                END
+            ), 0) AS saldo_neto
+            FROM movimientos
+            WHERE usuario_id = ?
+        """, (usuario_id,))
+        saldo_neto = float(cursor.fetchone()['saldo_neto'] or 0)
+
+        # Deudas
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS total_deudas_pendientes,
+                COALESCE(SUM(saldo), 0) AS saldo_deudas_pendientes
+            FROM deudas
+            WHERE usuario_id = ?
+              AND estado = 'pendiente'
+        """, (usuario_id,))
+        deudas_pendientes = cursor.fetchone()
+
+        # Préstamos
+        cursor.execute("""
+            SELECT
+                COUNT(*) AS total_prestamos,
+                COALESCE(SUM(saldo), 0) AS saldo_prestamos
+            FROM prestamos
+            WHERE usuario_id = ?
+              AND estado = 'pendiente'
+        """, (usuario_id,))
+        prestamos = cursor.fetchone()
+
+        # Datos para gráficas
+        cursor.execute("""
+            SELECT m.fecha, m.valor, m.tipo, c.nombre AS categoria_nombre
+            FROM movimientos m
+            LEFT JOIN categorias c ON m.categoria_id = c.id
+            WHERE m.usuario_id = ?
+            ORDER BY m.fecha ASC, m.id ASC
+        """, (usuario_id,))
+        movimientos_chart = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT estado, COUNT(*) AS cantidad
+            FROM (
+                SELECT
+                    CASE
+                        WHEN estado = 'completada' THEN 'completada'
+                        WHEN fecha_limite IS NOT NULL AND fecha_limite < CURRENT_DATE THEN 'vencida'
+                        ELSE COALESCE(estado, 'pendiente')
+                    END AS estado
+                FROM tareas
+                WHERE usuario_id = ?
+            ) sub
+            GROUP BY estado
+        """, (usuario_id,))
+        tareas_estado_rows = cursor.fetchall()
+
+        # ---- Procesamiento en Python para evitar diferencias SQLite/Postgres ----
+        from collections import OrderedDict
+
+        # Últimos 6 meses
+        hoy = date.today()
+        meses = []
+        for i in range(5, -1, -1):
+            y = hoy.year
+            m = hoy.month - i
+            while m <= 0:
+                m += 12
+                y -= 1
+            while m > 12:
+                m -= 12
+                y += 1
+            meses.append((y, m))
+
+        month_labels = []
+        ingresos_por_mes = OrderedDict()
+        gastos_por_mes = OrderedDict()
+
+        for y, m in meses:
+            key = f"{y}-{m:02d}"
+            month_labels.append(f"{m:02d}/{str(y)[2:]}")
+            ingresos_por_mes[key] = 0.0
+            gastos_por_mes[key] = 0.0
+
+        categoria_gastos = {}
+        saldo_timeline = OrderedDict()
+
+        saldo_acumulado = 0.0
+
+        for mov in movimientos_chart:
+            fecha_val = mov['fecha']
+            fecha_obj = to_date(fecha_val)
+            if not fecha_obj:
+                continue
+
+            fecha_key = fecha_obj.strftime('%Y-%m-%d')
+            month_key = fecha_obj.strftime('%Y-%m')
+            valor = float(mov['valor'] or 0)
+            tipo = mov['tipo']
+
+            # gráfica ingresos vs gastos
+            if month_key in ingresos_por_mes:
+                if tipo == 'ingreso':
+                    ingresos_por_mes[month_key] += valor
+                elif tipo == 'gasto':
+                    gastos_por_mes[month_key] += valor
+
+            # gráfica gastos por categoría
+            if tipo == 'gasto':
+                categoria = mov['categoria_nombre'] or 'Sin categoría'
+                categoria_gastos[categoria] = categoria_gastos.get(categoria, 0) + valor
+
+            # línea saldo disponible real
+            if tipo in ('ingreso', 'abono_a_recibir'):
+                saldo_acumulado += valor
+            elif tipo in ('gasto', 'abono_deuda', 'prestamo_entregado'):
+                saldo_acumulado -= valor
+
+            saldo_timeline[fecha_key] = saldo_acumulado
+
+        # dejar solo últimos 8 puntos del timeline
+        saldo_timeline_items = list(saldo_timeline.items())[-8:]
+        saldo_timeline_labels = [item[0] for item in saldo_timeline_items]
+        saldo_timeline_values = [round(item[1], 2) for item in saldo_timeline_items]
+
+        # tareas estado
+        task_status_map = {
+            'pendiente': 0,
+            'en progreso': 0,
+            'completada': 0,
+            'vencida': 0
+        }
+        for row in tareas_estado_rows:
+            estado = row['estado']
+            cantidad = int(row['cantidad'] or 0)
+            task_status_map[estado] = cantidad
+
+        # deuda vs préstamo
+        debt_vs_loan_labels = ['Deudas', 'Préstamos']
+        debt_vs_loan_values = [
+            float(deudas_pendientes['saldo_deudas_pendientes'] or 0),
+            float(prestamos['saldo_prestamos'] or 0)
+        ]
+
+        chart_data = {
+            'incomeExpense': {
+                'labels': month_labels,
+                'ingresos': [round(v, 2) for v in ingresos_por_mes.values()],
+                'gastos': [round(v, 2) for v in gastos_por_mes.values()],
+            },
+            'categoryExpense': {
+                'labels': list(categoria_gastos.keys()) if categoria_gastos else ['Sin datos'],
+                'values': [round(v, 2) for v in categoria_gastos.values()] if categoria_gastos else [0],
+            },
+            'balanceTrend': {
+                'labels': saldo_timeline_labels if saldo_timeline_labels else ['Sin datos'],
+                'values': saldo_timeline_values if saldo_timeline_values else [0],
+            },
+            'taskStatus': {
+                'labels': ['Pendientes', 'En progreso', 'Completadas', 'Vencidas'],
+                'values': [
+                    task_status_map['pendiente'],
+                    task_status_map['en progreso'],
+                    task_status_map['completada'],
+                    task_status_map['vencida'],
+                ],
+            },
+            'debtLoan': {
+                'labels': debt_vs_loan_labels,
+                'values': debt_vs_loan_values,
+            }
+        }
+
+        return render_template(
+            'panel_usuario.html',
+            usuario=current_user.nombre_usuario,
+            usuario_foto=foto,
+            ultimos_movimientos=ultimos_movimientos,
+            tareas_pendientes=tareas_pendientes,
+            proximos_eventos=proximos_eventos,
+            total_ingresos=total_ingresos,
+            total_gastos=total_gastos,
+            saldo_neto=saldo_neto,
+            saldo_wallet=saldo_wallet,
+            deudas_pendientes=deudas_pendientes,
+            prestamos=prestamos,
+            total_tareas_pendientes=total_tareas_pendientes,
+            total_tareas_completadas=total_tareas_completadas,
+            total_eventos_proximos=total_eventos_proximos,
+            chart_data=chart_data
+        )
+
+    finally:
+        cursor.close()
+        conn.close()
 
 # ══════════════════════════════════════════════════════════
 # TAREAS
@@ -1155,28 +1381,39 @@ def actualizar_lista():
     data = request.get_json()
     tarea_id = data.get('id')
     nuevo_lista_id = data.get('nuevo_lista_id')
+    nuevo_estado = data.get('nuevo_estado')  # nuevo
 
     if not tarea_id or not nuevo_lista_id:
         return jsonify({'exito': False, 'error': 'Datos incompletos'})
     try:
-        try:
-            nuevo_lista_id = int(nuevo_lista_id)
-        except (TypeError, ValueError):
-            return jsonify({'exito': False, 'error': 'Lista inválida'})
+        nuevo_lista_id = int(nuevo_lista_id)
+    except (TypeError, ValueError):
+        return jsonify({'exito': False, 'error': 'Lista inválida'})
 
+    estados_validos = ('pendiente', 'en progreso', 'completada')
+
+    try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            'UPDATE tareas SET lista_id = ? WHERE id = ? AND usuario_id = ?',
-            (nuevo_lista_id, tarea_id, current_user.id)
-        )
+
+        if nuevo_estado and nuevo_estado in estados_validos:
+            cursor.execute(
+                'UPDATE tareas SET lista_id = ?, estado = ? WHERE id = ? AND usuario_id = ?',
+                (nuevo_lista_id, nuevo_estado, tarea_id, current_user.id)
+            )
+        else:
+            cursor.execute(
+                'UPDATE tareas SET lista_id = ? WHERE id = ? AND usuario_id = ?',
+                (nuevo_lista_id, tarea_id, current_user.id)
+            )
+
         conn.commit()
         cursor.close()
         conn.close()
         return jsonify({'exito': True})
     except Exception as e:
         return jsonify({'exito': False, 'error': str(e)})
-
+    
 
 @app.route('/actualizar_estado_tarea', methods=['POST'])
 @login_required
