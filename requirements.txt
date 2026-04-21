@@ -6,7 +6,7 @@ Flask-Login
 Flask-WTF
 Flask-Cors
 WTForms
-xhtml2pdf
+xhtml2pdf==0.2.11
 psycopg2-binary
 Werkzeug
 gunicorn
