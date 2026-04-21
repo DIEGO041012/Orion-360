@@ -1,33 +1,43 @@
 services:
   - type: web
-    name: LifePilot
+    name: orion-360
     env: python
-    pythonVersion: 3.12.14
     plan: free
+    pythonVersion: 3.12.14
+
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app
+
     envVars:
       - key: ENV
-        value: 'production'
-        sync: false
+        value: production
+
+      - key: SECRET_KEY
+        generateValue: true
+
       - key: DATABASE_URL
         sync: false
-      - key: SECRET_KEY
-        sync: false
+
       - key: GOOGLE_CLIENT_ID
         sync: false
+
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+
       - key: GOOGLE_REDIRECT_URI
         sync: false
+
       - key: GEMINI_API_KEY
         sync: false
+
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
+
       - key: CLOUDINARY_API_KEY
         sync: false
+
       - key: CLOUDINARY_API_SECRET
         sync: false
+
       - key: OAUTHLIB_INSECURE_TRANSPORT
-        value: '1'
-        sync: false
+        value: "1"

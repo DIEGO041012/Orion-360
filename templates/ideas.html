@@ -8,57 +8,156 @@
 {% endblock %}
 
 {% block contenido %}
-<div class="ideas-page">  
-  <h2>💡 Espacio Creativo: Generación de Ideas e Ingresos</h2>
+<div class="ideas-page">
 
-  <!-- Área de inspiración -->
-  <section class="inspiracion">
-    <p>Piensa en proyectos, servicios, productos o soluciones que podrías ofrecer. Este es tu laboratorio creativo.</p>
-    <button onclick="generarSugerencia()">Dame una sugerencia 💭</button>
-    <div id="sugerencia" class="sugerencia-box"></div>
-  </section>
+  <div class="ideas-header">
+    <div>
+      <h2>💡 Espacio Creativo: Generación de Ideas e Ingresos</h2>
+      <p>Guarda tus ideas, inspírate y conviértelas en proyectos reales.</p>
+    </div>
+  </div>
 
-  <!-- Formulario para nuevas ideas -->
-  <form class="form-idea" method="POST" action="{{ url_for('ideas') }}">
-    <input type="text" name="titulo" placeholder="Título de la idea" required>
-    <textarea name="descripcion" rows="4" placeholder="Describe tu idea..." required></textarea>
-    <input type="text" name="categoria" placeholder="Categoría (opcional)">
-    <button type="submit">Guardar Idea</button>
-  </form>
-
-  <!-- Mostrar mensaje flash -->
+  <!-- Flash messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-      {% endfor %}
+      <div class="flash-stack">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
     {% endif %}
   {% endwith %}
 
-  <!-- Lista de ideas guardadas -->
+  <!-- GRID -->
+  <div class="ideas-grid">
+
+    <!-- INSPIRACIÓN -->
+    <section class="inspiracion">
+      <div class="section-head">
+        <h3>Inspiración rápida</h3>
+        <span class="section-badge">Creatividad</span>
+      </div>
+
+      <p>
+        Piensa en proyectos, servicios, productos o soluciones que podrías ofrecer.
+        Este es tu laboratorio creativo.
+      </p>
+
+      <button type="button" id="btnSugerencia">
+        Dame una sugerencia 💭
+      </button>
+
+      <div id="sugerencia" class="sugerencia-box">
+        Presiona el botón para recibir una idea nueva.
+      </div>
+    </section>
+
+    <!-- FORMULARIO -->
+    <section class="form-wrapper">
+      <div class="section-head">
+        <h3>Nueva idea</h3>
+        <span class="section-badge accent">Guardar</span>
+      </div>
+
+      <form class="form-idea" method="POST" action="{{ url_for('ideas') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <label for="titulo">Título</label>
+        <input
+          id="titulo"
+          type="text"
+          name="titulo"
+          placeholder="Ej: Plataforma de soporte remoto"
+          required
+        >
+
+        <label for="descripcion">Descripción</label>
+        <textarea
+          id="descripcion"
+          name="descripcion"
+          rows="5"
+          placeholder="Describe tu idea..."
+          required
+        ></textarea>
+
+        <label for="categoria">Categoría</label>
+        <input
+          id="categoria"
+          type="text"
+          name="categoria"
+          placeholder="Ej: Tecnología, Servicios, Educación"
+        >
+
+        <button type="submit">Guardar Idea</button>
+      </form>
+    </section>
+
+  </div>
+
+  <!-- LISTA -->
   <section class="lista-ideas">
-    <h3>📋 Mis Ideas</h3>
+    <div class="section-head">
+      <h3>📋 Mis Ideas</h3>
+      <span class="section-badge">{{ ideas|length }} registradas</span>
+    </div>
+
     {% if ideas %}
-      {% for idea in ideas %}
-        <div class="idea-item">
-          <strong>{{ idea.titulo }}</strong>
-          <p>{{ idea.descripcion }}</p>
-          {% if idea.categoria %}
-            <span class="categoria">📁 {{ idea.categoria }}</span>
-          {% endif %}
-          <div class="acciones">
-            <a href="{{ url_for('editar_idea', id=idea.id) }}" class="btn btn-sm btn-warning">✏️ Editar</a>
-            <a href="{{ url_for('eliminar_idea', id=idea.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta idea?')">🗑️ Eliminar</a>
-          </div>
-        </div>
-      {% endfor %}
+      <div class="ideas-list">
+        {% for idea in ideas %}
+          <article class="idea-item">
+
+            <div class="idea-top">
+              <div>
+                <strong>{{ idea.titulo }}</strong>
+
+                {% if idea.categoria %}
+                  <div class="categoria">📁 {{ idea.categoria }}</div>
+                {% endif %}
+              </div>
+
+              {% if idea.fecha_creacion %}
+                <span class="idea-date">{{ idea.fecha_creacion }}</span>
+              {% endif %}
+            </div>
+
+            <p>{{ idea.descripcion }}</p>
+
+            <div class="acciones">
+
+              <a href="{{ url_for('editar_idea', id=idea.id) }}" class="btn btn-warning">
+                ✏️ Editar
+              </a>
+
+              <form
+                method="POST"
+                action="{{ url_for('eliminar_idea', id=idea.id) }}"
+                onsubmit="return confirm('¿Estás seguro de eliminar esta idea?')"
+              >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">
+                  🗑️ Eliminar
+                </button>
+              </form>
+
+            </div>
+
+          </article>
+        {% endfor %}
+      </div>
     {% else %}
-      <p>No tienes ideas guardadas aún. ¡Empieza ahora!</p>
+      <div class="empty-state">
+        <div class="empty-icon">💭</div>
+        <p>No tienes ideas guardadas aún. ¡Empieza ahora!</p>
+      </div>
     {% endif %}
   </section>
+
 </div>
 
+<!-- SCRIPT FUNCIONAL -->
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+
   const sugerencias = [
     "Crea un canal de YouTube sobre tus habilidades técnicas.",
     "Ofrece asesorías personalizadas en soporte técnico.",
@@ -67,11 +166,22 @@
     "Haz una tienda virtual de componentes o periféricos.",
     "Ofrece paquetes de mantenimiento preventivo a pequeñas empresas.",
     "Desarrolla una página de gestión de ingresos para terceros.",
+    "Crea un servicio de organización digital para emprendedores.",
+    "Vende plantillas o automatizaciones para pequeños negocios.",
+    "Diseña un sistema simple para control de tareas y agenda."
   ];
 
-  function generarSugerencia() {
-    const index = Math.floor(Math.random() * sugerencias.length);
-    document.getElementById("sugerencia").innerText = sugerencias[index];
+  const btn = document.getElementById("btnSugerencia");
+  const box = document.getElementById("sugerencia");
+
+  if (btn && box) {
+    btn.addEventListener("click", function () {
+      const index = Math.floor(Math.random() * sugerencias.length);
+      box.innerText = sugerencias[index];
+    });
   }
+
+});
 </script>
+
 {% endblock %}

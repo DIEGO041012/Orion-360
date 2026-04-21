@@ -2727,67 +2727,108 @@ def eliminar_del_carrito(item_id):
 # ══════════════════════════════════════════════════════════
 
 @app.route("/ideas", methods=["GET", "POST"])
+@login_required
 def ideas():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if request.method == "POST":
-        titulo = request.form["titulo"]
-        descripcion = request.form["descripcion"]
-        categoria = request.form.get("categoria", "")
-        cursor.execute(
-            "INSERT INTO ideas (titulo, descripcion, categoria) VALUES (?, ?, ?)",
-            [titulo, descripcion, categoria]
-        )
-        conn.commit()
-        flash("Idea registrada con éxito", "success")
+    try:
+        if request.method == "POST":
+            titulo = (request.form.get("titulo") or "").strip()
+            descripcion = (request.form.get("descripcion") or "").strip()
+            categoria = (request.form.get("categoria") or "").strip()
+
+            if not titulo or not descripcion:
+                flash("Título y descripción son obligatorios.", "danger")
+                return redirect(url_for("ideas"))
+
+            cursor.execute(
+                "INSERT INTO ideas (titulo, descripcion, categoria) VALUES (?, ?, ?)",
+                (titulo, descripcion, categoria)
+            )
+            conn.commit()
+            flash("Idea registrada con éxito.", "success")
+            return redirect(url_for("ideas"))
+
+        cursor.execute("SELECT * FROM ideas ORDER BY fecha_creacion DESC, id DESC")
+        ideas_list = cursor.fetchall()
+
+        return render_template("ideas.html", ideas=ideas_list)
+
+    except Exception as e:
+        conn.rollback()
+        print("Error en ideas:", e)
+        flash("Ocurrió un error al cargar o guardar ideas.", "danger")
+        return render_template("ideas.html", ideas=[])
+
+    finally:
         cursor.close()
         conn.close()
-        return redirect(url_for("ideas"))
-
-    cursor.execute("SELECT * FROM ideas ORDER BY fecha_creacion DESC")
-    ideas_list = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return render_template("ideas.html", ideas=ideas_list)
 
 
-@app.route("/eliminar_idea/<int:id>")
+@app.route("/eliminar_idea/<int:id>", methods=["POST"])
+@login_required
 def eliminar_idea(id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM ideas WHERE id = ?", [id])
-    conn.commit()
-    cursor.close()
-    conn.close()
-    flash("Idea eliminada", "info")
+
+    try:
+        cursor.execute("DELETE FROM ideas WHERE id = ?", (id,))
+        conn.commit()
+        flash("Idea eliminada correctamente.", "success")
+    except Exception as e:
+        conn.rollback()
+        print("Error al eliminar idea:", e)
+        flash("No se pudo eliminar la idea.", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
     return redirect(url_for("ideas"))
 
 
 @app.route("/editar_idea/<int:id>", methods=["GET", "POST"])
+@login_required
 def editar_idea(id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if request.method == "POST":
-        titulo = request.form["titulo"]
-        descripcion = request.form["descripcion"]
-        categoria = request.form["categoria"]
-        cursor.execute(
-            "UPDATE ideas SET titulo = ?, descripcion = ?, categoria = ? WHERE id = ?",
-            [titulo, descripcion, categoria, id]
-        )
-        conn.commit()
-        cursor.close()
-        conn.close()
-        flash("Idea actualizada", "success")
+    try:
+        if request.method == "POST":
+            titulo = (request.form.get("titulo") or "").strip()
+            descripcion = (request.form.get("descripcion") or "").strip()
+            categoria = (request.form.get("categoria") or "").strip()
+
+            if not titulo or not descripcion:
+                flash("Título y descripción son obligatorios.", "danger")
+                return redirect(url_for("editar_idea", id=id))
+
+            cursor.execute(
+                "UPDATE ideas SET titulo = ?, descripcion = ?, categoria = ? WHERE id = ?",
+                (titulo, descripcion, categoria, id)
+            )
+            conn.commit()
+            flash("Idea actualizada correctamente.", "success")
+            return redirect(url_for("ideas"))
+
+        cursor.execute("SELECT * FROM ideas WHERE id = ?", (id,))
+        idea = cursor.fetchone()
+
+        if not idea:
+            flash("La idea no existe.", "danger")
+            return redirect(url_for("ideas"))
+
+        return render_template("editar_idea.html", idea=idea)
+
+    except Exception as e:
+        conn.rollback()
+        print("Error al editar idea:", e)
+        flash("No se pudo editar la idea.", "danger")
         return redirect(url_for("ideas"))
 
-    cursor.execute("SELECT * FROM ideas WHERE id = ?", [id])
-    idea = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return render_template("editar_idea.html", idea=idea)
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # ══════════════════════════════════════════════════════════
