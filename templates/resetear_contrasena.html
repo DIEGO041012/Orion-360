@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva contraseña{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_iniciosesion.css') }}">
+{% endblock %}
+
+{% block contenido %}
+<main>
+  <div class="login-container">
+    <h2>Nueva contraseña</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="nueva_clave">Nueva contraseña</label>
+      <input type="password" id="nueva_clave" name="nueva_clave"
+             placeholder="Mínimo 8 caracteres" required minlength="8">
+
+      <label for="confirmar_clave" style="margin-top:1rem;">Confirmar contraseña</label>
+      <input type="password" id="confirmar_clave" name="confirmar_clave"
+             placeholder="Repite la contraseña" required minlength="8">
+
+      <button type="submit" style="margin-top:1rem;">Guardar contraseña</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

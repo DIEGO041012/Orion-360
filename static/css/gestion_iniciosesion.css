@@ -125,3 +125,15 @@ p.mt-3 a {
 p.mt-3 a:hover {
   text-decoration: underline;
 }
+
+
+.flash {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.flash-info    { background: rgba(59,130,246,0.15); color: #93c5fd; }
+.flash-success { background: rgba(34,197,94,0.15);  color: #86efac; }
+.flash-danger  { background: rgba(239,68,68,0.15);  color: #fca5a5; }

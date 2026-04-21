@@ -1,37 +1,40 @@
-  {% extends "base.html" %}
+    {% extends "base.html" %}
 
-  {% block titulo %}Iniciar sesión{% endblock %}
+    {% block titulo %}Iniciar sesión{% endblock %}
 
-  {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_iniciosesion.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
-  {% endblock %}
+    {% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_iniciosesion.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+    {% endblock %}
 
-  {% block contenido %}
-  <main>
-    <div class="login-container">
-      <h2>Iniciar sesión</h2>
+    {% block contenido %}
+    <main>
+      <div class="login-container">
+        <h2>Iniciar sesión</h2>
 
-      <form method="POST" action="{{ url_for('iniciar_sesion') }}">
-          {{ form.hidden_tag() }}
+        <form method="POST" action="{{ url_for('iniciar_sesion') }}">
+            {{ form.hidden_tag() }}
 
-          {{ form.usuario.label }}<br />
-          {{ form.usuario(size=32) }}<br />
+            {{ form.usuario.label }}<br />
+            {{ form.usuario(size=32) }}<br />
 
-          {{ form.clave.label }}<br />
-          {{ form.clave(size=32) }}<br /> {# ← Este campo ahora tiene un valor correcto #}
+            {{ form.clave.label }}<br />
+            {{ form.clave(size=32) }}<br /> {# ← Este campo ahora tiene un valor correcto #}
 
-          {{ form.submit(class="btn btn-primary") }}
-      </form>
+            {{ form.submit(class="btn btn-primary") }}
+        </form>
 
 
 
-      <hr>
+        <hr>
 
-      <a href="{{ url_for('login_google') }}" class="btn btn-danger">
-          <i class="fab fa-google"></i> Iniciar sesión con Google
-      </a>
-    </div>
-  </main>
+        <a href="{{ url_for('login_google') }}" class="btn btn-danger">
+            <i class="fab fa-google"></i> Iniciar sesión con Google
+        </a>
+      </div>
+      <p class="mt-3">
+        <a href="{{ url_for('recuperar_contrasena') }}">¿Olvidaste tu contraseña?</a>
+      </p>
+    </main>
 
-  {% endblock %}
+    {% endblock %}

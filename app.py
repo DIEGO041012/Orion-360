@@ -920,6 +920,91 @@ def cerrar_sesion():
     return redirect(url_for('iniciar_sesion'))
 
 
+# ── Solicitar recuperación ──
+@app.route('/recuperar_contrasena', methods=['GET', 'POST'])
+def recuperar_contrasena():
+    if request.method == 'POST':
+        correo = (request.form.get('correo') or '').strip().lower()
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT id FROM usuarios WHERE correo_electronico = ?',
+            (correo,)
+        )
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        # Siempre mostramos el mismo mensaje para no revelar si el correo existe
+        if usuario:
+            token = serializer.dumps(correo, salt='recuperar-contrasena')
+            enlace = url_for('resetear_contrasena', token=token, _external=True)
+
+            msg = Message(
+                subject='Recuperación de contraseña — Oryon 360',
+                recipients=[correo]
+            )
+            msg.html = f"""
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#111;color:#ccc;border-radius:12px;">
+                <h2 style="color:#fff;margin-bottom:8px;">Recuperar contraseña</h2>
+                <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el botón para continuar:</p>
+                <a href="{enlace}"
+                   style="display:inline-block;margin:20px 0;padding:12px 24px;background:#fff;color:#000;border-radius:6px;font-weight:700;text-decoration:none;">
+                    Restablecer contraseña
+                </a>
+                <p style="font-size:13px;color:#888;">Este enlace expira en <strong style="color:#ccc;">30 minutos</strong>. Si no solicitaste esto, ignora este correo.</p>
+            </div>
+            """
+            try:
+                mail.send(msg)
+            except Exception as e:
+                print('Error al enviar correo:', e)
+
+        flash('Si ese correo está registrado, recibirás un enlace en breve.', 'info')
+        return redirect(url_for('recuperar_contrasena'))
+
+    return render_template('recuperar_contrasena.html')
+
+
+# ── Resetear contraseña (desde el enlace del correo) ──
+@app.route('/resetear_contrasena/<token>', methods=['GET', 'POST'])
+def resetear_contrasena(token):
+    try:
+        correo = serializer.loads(token, salt='recuperar-contrasena', max_age=1800)
+    except Exception:
+        flash('El enlace es inválido o ha expirado.', 'danger')
+        return redirect(url_for('recuperar_contrasena'))
+
+    if request.method == 'POST':
+        nueva = (request.form.get('nueva_clave') or '').strip()
+        confirmar = (request.form.get('confirmar_clave') or '').strip()
+
+        if len(nueva) < 8:
+            flash('La contraseña debe tener al menos 8 caracteres.', 'danger')
+            return redirect(request.url)
+
+        if nueva != confirmar:
+            flash('Las contraseñas no coinciden.', 'danger')
+            return redirect(request.url)
+
+        clave_hash = generate_password_hash(nueva)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE usuarios SET contraseña = ? WHERE correo_electronico = ?',
+            (clave_hash, correo)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('Contraseña actualizada correctamente. Ya puedes iniciar sesión.', 'success')
+        return redirect(url_for('iniciar_sesion'))
+
+    return render_template('resetear_contrasena.html', token=token)
+
+
 # ── Google OAuth ──────────────────────────────────────────
 
 @app.route('/login/google')
