@@ -23,11 +23,11 @@ import psycopg2
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from google.generativeai import GenerativeModel, configure
+from google import genai
+from google.genai import types
 from PIL import Image
 import base64
 import mimetypes
-import google.generativeai as genai
 import cloudinary
 import cloudinary.uploader
 from config import Config
@@ -42,6 +42,7 @@ load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'flaskform')))
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 sqlite3.register_adapter(Decimal, float)
+print("KEY CARGADA:", os.getenv("GEMINI_API_KEY"))
 
 # ══════════════════════════════════════════════════════════
 # INICIALIZACIÓN DE LA APLICACIÓN
@@ -465,19 +466,18 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════
-# CONFIGURACIÓN GEMINI
+# CONFIGURACIÓN GEMINI (nueva librería google-genai)
 # ══════════════════════════════════════════════════════════
 
 def inicializar_gemini():
     api_key = app.config.get('GEMINI_API_KEY')
-    if not api_key:
-        print('⚠️ GEMINI_API_KEY no configurado; la función de asistente no funcionará.')
+    if not api_key or api_key == 'your_gemini_api_key_here':
+        print('⚠️ GEMINI_API_KEY no configurado.')
         return None
     try:
-        genai.configure(api_key=api_key)
-        modelo = genai.GenerativeModel(model_name='models/gemini-2.0-flash')
+        cliente = genai.Client(api_key=api_key)
         print('✅ Gemini API inicializada correctamente.')
-        return modelo
+        return cliente
     except Exception as e:
         print('⚠️ No se pudo inicializar Gemini:', str(e)[:180])
         return None
@@ -486,22 +486,22 @@ def inicializar_gemini():
 def generar_respuesta_gemini(prompt, imagen_binaria=None, mime_type=None):
     if model is None:
         raise RuntimeError('GEMINI_API_KEY no está configurado o el modelo no se inició.')
-    inputs = ['Responde siempre en español.', prompt]
+
+    contenido = ['Responde siempre en español.', prompt]
+
     if imagen_binaria and mime_type:
-        inputs.append({
-            'mime_type': mime_type,
-            'data': base64.b64encode(imagen_binaria).decode('utf-8')
-        })
-    resultado = model.generate_content(inputs)
-    if hasattr(resultado, 'text'):
-        return resultado.text
-    if isinstance(resultado, str):
-        return resultado
-    return str(resultado)
+        contenido.append(
+            types.Part.from_bytes(data=imagen_binaria, mime_type=mime_type)
+        )
+
+    respuesta = model.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=contenido
+    )
+    return respuesta.text
 
 
 model = inicializar_gemini()
-
 
 # ══════════════════════════════════════════════════════════
 # CONFIGURACIÓN ARCHIVOS & FILTROS JINJA
@@ -2585,6 +2585,138 @@ def gemini_status():
         "enabled": model is not None,
         "message": "Gemini está configurado." if model is not None else "Gemini no está disponible. Verifica GEMINI_API_KEY."
     })
+
+
+# ══════════════════════════════════════════════════════════
+# ESCÁNER DE FACTURAS
+# ══════════════════════════════════════════════════════════
+
+@app.route('/escanear_factura', methods=['GET'])
+@login_required
+def escanear_factura():
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, nombre FROM categorias WHERE usuario_id = ?', (current_user.id,))
+    categorias = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('escanear_factura.html', categorias=categorias)
+
+
+@app.route('/procesar_factura', methods=['POST'])
+@login_required
+def procesar_factura():
+    imagen = request.files.get('imagen')
+
+    if not imagen or imagen.filename == '':
+        return jsonify({'error': 'No se recibió ninguna imagen'}), 400
+
+    try:
+        imagen_binaria = imagen.read()
+        tipo = imagen.mimetype.split('/')[-1]
+        if tipo == 'jpg':
+            tipo = 'jpeg'
+        mime_type = f'image/{tipo}'
+    except Exception as e:
+        return jsonify({'error': f'Error al leer la imagen: {str(e)}'}), 500
+
+    prompt = """Analiza esta factura o recibo y extrae la información en formato JSON.
+Responde ÚNICAMENTE con el JSON, sin texto adicional, sin bloques de código, sin explicaciones.
+El JSON debe tener exactamente estas claves:
+{
+  "descripcion": "nombre del establecimiento o descripción del gasto",
+  "monto": 0.00,
+  "fecha": "YYYY-MM-DD"
+}
+Si no puedes leer algún campo con certeza, usa estos valores por defecto:
+- descripcion: "Gasto escaneado"
+- monto: 0.00
+- fecha: fecha de hoy en formato YYYY-MM-DD
+Responde SOLO el JSON, nada más."""
+
+    try:
+        resultado = generar_respuesta_gemini(prompt, imagen_binaria, mime_type)
+
+        # Limpiar la respuesta por si Gemini agrega texto extra
+        resultado = resultado.strip()
+        if resultado.startswith('```'):
+            resultado = resultado.split('```')[1]
+            if resultado.startswith('json'):
+                resultado = resultado[4:]
+        resultado = resultado.strip()
+
+        datos = json.loads(resultado)
+
+        # Validar y limpiar los datos
+        descripcion = str(datos.get('descripcion', 'Gasto escaneado')).strip()
+        fecha       = str(datos.get('fecha', date.today().isoformat())).strip()
+        try:
+            monto = float(datos.get('monto', 0))
+        except (ValueError, TypeError):
+            monto = 0.0
+
+        # Validar formato de fecha
+        try:
+            datetime.strptime(fecha, '%Y-%m-%d')
+        except ValueError:
+            fecha = date.today().isoformat()
+
+        return jsonify({
+            'exito': True,
+            'descripcion': descripcion,
+            'monto': monto,
+            'fecha': fecha
+        })
+
+    except json.JSONDecodeError:
+        # Si Gemini no devuelve JSON válido, devolver valores por defecto
+        return jsonify({
+            'exito': True,
+            'descripcion': 'Gasto escaneado',
+            'monto': 0.0,
+            'fecha': date.today().isoformat(),
+            'advertencia': 'No se pudo leer la factura con claridad. Completa los datos manualmente.'
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error al procesar: {str(e)}'}), 500
+
+
+@app.route('/guardar_factura', methods=['POST'])
+@login_required
+def guardar_factura():
+    try:
+        fecha       = (request.form.get('fecha') or '').strip()
+        descripcion = (request.form.get('descripcion') or '').strip()
+        monto_raw   = (request.form.get('monto') or '0').strip()
+        categoria_id = request.form.get('categoria_id') or None
+
+        if not fecha or not descripcion:
+            flash('Fecha y descripción son obligatorios.', 'danger')
+            return redirect(url_for('escanear_factura'))
+
+        try:
+            monto = float(monto_raw)
+        except ValueError:
+            flash('El monto no es válido.', 'danger')
+            return redirect(url_for('escanear_factura'))
+
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id) VALUES (?, ?, ?, ?, ?, ?)',
+            (fecha, descripcion, monto, 'gasto', current_user.id, categoria_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash('Gasto guardado correctamente desde la factura.', 'success')
+        return redirect(url_for('registros'))
+
+    except Exception as e:
+        print('Error al guardar factura:', e)
+        flash('Ocurrió un error al guardar el gasto.', 'danger')
+        return redirect(url_for('escanear_factura'))    
 
 
 # ══════════════════════════════════════════════════════════

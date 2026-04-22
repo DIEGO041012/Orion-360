@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block titulo %}Escanear factura{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<style>
+.scanner-page { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+.scanner-header h1 { font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+.scanner-header p  { color: var(--text-secondary); margin: 0; font-size: 14px; }
+
+.upload-zone {
+    border: 2px dashed var(--border-mid);
+    border-radius: var(--radius-xl);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--bg-surface);
+    position: relative;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+}
+.upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-icon { font-size: 36px; color: var(--text-muted); margin-bottom: 12px; }
+.upload-title { font-size: 15px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px; }
+.upload-sub   { font-size: 13px; color: var(--text-muted); }
+
+.preview-section { display: none; flex-direction: column; gap: 16px; }
+.preview-section.visible { display: flex; }
+
+.preview-img-wrap {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-base);
+    max-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.preview-img-wrap img { max-width: 100%; max-height: 320px; object-fit: contain; }
+
+.btn-scan {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px; width: 100%;
+    background: var(--accent); color: var(--accent-text);
+    border: none; border-radius: var(--radius-lg);
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+.btn-scan:hover   { opacity: 0.9; transform: translateY(-1px); }
+.btn-scan:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.result-card {
+    display: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    flex-direction: column;
+    gap: 16px;
+}
+.result-card.visible { display: flex; }
+
+.result-card h3 { font-size: 15px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+.result-card p  { font-size: 13px; color: var(--text-secondary); margin: 0 0 14px; }
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.form-field input, .form-field select {
+    padding: 11px 14px;
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color 0.2s;
+}
+.form-field input:focus, .form-field select:focus { border-color: var(--accent-border); }
+
+.advertencia {
+    padding: 10px 14px;
+    background: rgba(251,146,60,0.12);
+    border: 1px solid rgba(251,146,60,0.25);
+    border-radius: var(--radius-md);
+    color: var(--amber);
+    font-size: 13px;
+    display: none;
+}
+.advertencia.visible { display: block; }
+
+.btn-guardar {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px; width: 100%;
+    background: var(--green); color: #fff;
+    border: none; border-radius: var(--radius-lg);
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+.btn-guardar:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-reiniciar {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px; width: 100%;
+    background: none; color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-reiniciar:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.loading-state {
+    display: none; flex-direction: column;
+    align-items: center; gap: 12px; padding: 24px;
+    color: var(--text-secondary); font-size: 14px;
+}
+.loading-state.visible { display: flex; }
+.spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block contenido %}
+<div class="scanner-page">
+
+  <div class="scanner-header">
+    <h1><i class="fa-solid fa-receipt" style="margin-right:8px;color:var(--accent)"></i>Escanear factura</h1>
+    <p>Sube una foto de tu factura o recibo y Gemini extraerá los datos automáticamente.</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div style="padding:12px 16px;border-radius:var(--radius-md);background:var(--bg-elevated);
+                  border-left:3px solid var(--{% if category == 'success' %}green{% else %}red{% endif %});
+                  font-size:13px;color:var(--text-secondary);">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Zona de carga -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="inputImagen" accept="image/*" capture="environment">
+    <div class="upload-icon"><i class="fa-solid fa-camera-retro"></i></div>
+    <div class="upload-title">Toca para tomar foto o seleccionar imagen</div>
+    <div class="upload-sub">JPG, PNG o WEBP · máx 5 MB</div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section" id="previewSection">
+    <div class="preview-img-wrap">
+      <img id="previewImg" src="" alt="Vista previa de la factura">
+    </div>
+    <button class="btn-scan" id="btnScan" type="button">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      Analizar con Gemini
+    </button>
+    <button class="btn-reiniciar" type="button" onclick="reiniciar()">
+      <i class="fa-solid fa-arrow-rotate-left"></i> Cambiar imagen
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" id="loadingState">
+    <div class="spinner"></div>
+    <span>Leyendo la factura...</span>
+  </div>
+
+  <!-- Resultado -->
+  <div class="result-card" id="resultCard">
+    <div>
+      <h3><i class="fa-solid fa-circle-check" style="color:var(--green);margin-right:6px"></i>Datos extraídos</h3>
+      <p>Revisa y corrige si es necesario antes de guardar.</p>
+    </div>
+
+    <div id="advertencia" class="advertencia">
+      <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px"></i>
+      <span id="advertenciaTexto"></span>
+    </div>
+
+    <form method="POST" action="{{ url_for('guardar_factura') }}" id="formGuardar">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div style="display:grid;gap:14px;">
+        <div class="form-field">
+          <label>Descripción / Establecimiento</label>
+          <input type="text" name="descripcion" id="campoDescripcion" required>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div class="form-field">
+            <label>Monto (total)</label>
+            <input type="number" name="monto" id="campoMonto" step="0.01" min="0" required>
+          </div>
+          <div class="form-field">
+            <label>Fecha</label>
+            <input type="date" name="fecha" id="campoFecha" required>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label>Categoría (opcional)</label>
+          <select name="categoria_id">
+            <option value="">Sin categoría</option>
+            {% for cat in categorias %}
+              <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-guardar">
+          <i class="fa-solid fa-floppy-disk"></i> Guardar como gasto
+        </button>
+        <button type="button" class="btn-reiniciar" onclick="reiniciar()">
+          <i class="fa-solid fa-arrow-rotate-left"></i> Escanear otra factura
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+const inputImagen  = document.getElementById('inputImagen');
+const uploadZone   = document.getElementById('uploadZone');
+const previewSection = document.getElementById('previewSection');
+const previewImg   = document.getElementById('previewImg');
+const loadingState = document.getElementById('loadingState');
+const resultCard   = document.getElementById('resultCard');
+const btnScan      = document.getElementById('btnScan');
+
+let archivoSeleccionado = null;
+
+inputImagen.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    archivoSeleccionado = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+        previewImg.src = e.target.result;
+        uploadZone.style.display = 'none';
+        previewSection.classList.add('visible');
+    };
+    reader.readAsDataURL(file);
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        inputImagen.files = e.dataTransfer.files;
+        inputImagen.dispatchEvent(new Event('change'));
+    }
+});
+
+btnScan.addEventListener('click', async function () {
+    if (!archivoSeleccionado) return;
+
+    previewSection.classList.remove('visible');
+    loadingState.classList.add('visible');
+    btnScan.disabled = true;
+
+    const formData = new FormData();
+    formData.append('imagen', archivoSeleccionado);
+
+    try {
+        const response = await fetch('/procesar_factura', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+        });
+        const data = await response.json();
+
+        loadingState.classList.remove('visible');
+
+        if (data.error) {
+            alert('Error: ' + data.error);
+            reiniciar();
+            return;
+        }
+
+        document.getElementById('campoDescripcion').value = data.descripcion || '';
+        document.getElementById('campoMonto').value       = data.monto || '';
+        document.getElementById('campoFecha').value       = data.fecha || '';
+
+        if (data.advertencia) {
+            document.getElementById('advertencia').classList.add('visible');
+            document.getElementById('advertenciaTexto').textContent = data.advertencia;
+        }
+
+        resultCard.classList.add('visible');
+
+    } catch (err) {
+        loadingState.classList.remove('visible');
+        alert('Error de conexión: ' + err.message);
+        reiniciar();
+    }
+});
+
+function reiniciar() {
+    archivoSeleccionado = null;
+    inputImagen.value   = '';
+    previewImg.src      = '';
+    uploadZone.style.display = '';
+    previewSection.classList.remove('visible');
+    loadingState.classList.remove('visible');
+    resultCard.classList.remove('visible');
+    document.getElementById('advertencia').classList.remove('visible');
+    btnScan.disabled = false;
+}
+</script>
+{% endblock %}

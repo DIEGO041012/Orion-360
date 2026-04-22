@@ -9,7 +9,7 @@ WTForms
 psycopg2-binary
 Werkzeug
 gunicorn
-google-generativeai
+google-genai
 Pillow
 cloudinary
 email-validator
