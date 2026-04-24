@@ -258,8 +258,9 @@ function validarImagen(file) {
         return false;
     }
 
-    if (file.size > 4 * 1024 * 1024) {
-        alert('La imagen es muy pesada. Usa una imagen menor a 4 MB.');
+    // 🔥 AUMENTAMOS A 8MB (IMPORTANTE PARA CELULAR)
+    if (file.size > 8 * 1024 * 1024) {
+        alert('La imagen es muy pesada. Usa una imagen menor a 8 MB.');
         return false;
     }
 
@@ -329,10 +330,30 @@ btnScan.addEventListener('click', async function () {
         const response = await fetch('{{ url_for("procesar_factura") }}', {
             method: 'POST',
             body: formData,
-            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            credentials: 'same-origin'
         });
 
+        const contentType = response.headers.get('content-type') || '';
+
+        if (!contentType.includes('application/json')) {
+            const texto = await response.text();
+            console.error('Respuesta no JSON del servidor:', texto);
+
+            loadingState.classList.remove('visible');
+
+            alert(
+                'El servidor no devolvió JSON. Puede ser sesión vencida, CSRF, imagen muy pesada o error interno en Render.'
+            );
+
+            reiniciar();
+            return;
+        }
+
         const data = await response.json();
+
         loadingState.classList.remove('visible');
 
         if (!response.ok || data.error) {
@@ -357,12 +378,15 @@ btnScan.addEventListener('click', async function () {
 
     } catch (err) {
         loadingState.classList.remove('visible');
+        console.error('Error de conexión:', err);
         alert('Error de conexión: ' + err.message);
         reiniciar();
+
     } finally {
         btnScan.disabled = false;
     }
 });
+
 
 function reiniciar() {
     archivoSeleccionado = null;

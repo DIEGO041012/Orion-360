@@ -130,6 +130,151 @@ class DatabaseConnection:
 
     def __getattr__(self, name):
         return getattr(self._conn, name)
+    
+def construir_contexto_orion(usuario_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Disponible real
+        cursor.execute("""
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN tipo IN ('ingreso', 'abono_a_recibir') THEN valor
+                    WHEN tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado') THEN -valor
+                    ELSE 0
+                END
+            ), 0) AS saldo
+            FROM movimientos
+            WHERE usuario_id = ?
+        """, (usuario_id,))
+        saldo = cursor.fetchone()['saldo']
+
+        # Ingresos del mes
+        if conn.is_postgres:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS total
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo = 'ingreso'
+                  AND DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)
+            """, (usuario_id,))
+        else:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS total
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo = 'ingreso'
+                  AND strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
+            """, (usuario_id,))
+        ingresos_mes = cursor.fetchone()['total']
+
+        # Gastos / salidas del mes
+        if conn.is_postgres:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS total
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado')
+                  AND DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)
+            """, (usuario_id,))
+        else:
+            cursor.execute("""
+                SELECT COALESCE(SUM(valor), 0) AS total
+                FROM movimientos
+                WHERE usuario_id = ?
+                  AND tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado')
+                  AND strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now')
+            """, (usuario_id,))
+        gastos_mes = cursor.fetchone()['total']
+
+        # Últimos movimientos
+        cursor.execute("""
+            SELECT fecha, descripcion, valor, tipo
+            FROM movimientos
+            WHERE usuario_id = ?
+            ORDER BY fecha DESC, id DESC
+            LIMIT 8
+        """, (usuario_id,))
+        movimientos = cursor.fetchall()
+
+        # Deudas pendientes
+        cursor.execute("""
+            SELECT persona, descripcion, saldo, estado, fecha
+            FROM deudas
+            WHERE usuario_id = ?
+              AND saldo > 0
+            ORDER BY fecha ASC
+            LIMIT 8
+        """, (usuario_id,))
+        deudas = cursor.fetchall()
+
+        # Préstamos pendientes
+        cursor.execute("""
+            SELECT persona, descripcion, saldo, estado, fecha
+            FROM prestamos
+            WHERE usuario_id = ?
+              AND saldo > 0
+            ORDER BY fecha ASC
+            LIMIT 8
+        """, (usuario_id,))
+        prestamos = cursor.fetchall()
+
+        # Agenda próxima
+        cursor.execute("""
+            SELECT titulo, descripcion, fecha, hora
+            FROM agenda
+            WHERE usuario_id = ?
+              AND fecha >= CURRENT_DATE
+            ORDER BY fecha ASC, hora ASC
+            LIMIT 8
+        """, (usuario_id,))
+        agenda = cursor.fetchall()
+
+        texto_movimientos = "\n".join([
+            f"- {m['fecha']} | {m['tipo']} | {m['descripcion']} | ${m['valor']}"
+            for m in movimientos
+        ]) or "Sin movimientos recientes."
+
+        texto_deudas = "\n".join([
+            f"- {d['persona'] or 'No especificado'} | {d['descripcion']} | saldo pendiente ${d['saldo']} | estado {d['estado']}"
+            for d in deudas
+        ]) or "Sin deudas pendientes."
+
+        texto_prestamos = "\n".join([
+            f"- {p['persona'] or 'No especificado'} | {p['descripcion']} | saldo por cobrar ${p['saldo']} | estado {p['estado']}"
+            for p in prestamos
+        ]) or "Sin préstamos pendientes."
+
+        texto_agenda = "\n".join([
+            f"- {a['fecha']} {a['hora'] or ''} | {a['titulo']} | {a['descripcion'] or 'Sin descripción'}"
+            for a in agenda
+        ]) or "Sin citas próximas."
+
+        return f"""
+DATOS REALES DEL USUARIO ACTUAL:
+
+FINANZAS:
+- Disponible actual: ${saldo}
+- Ingresos del mes: ${ingresos_mes}
+- Salidas del mes: ${gastos_mes}
+
+ÚLTIMOS MOVIMIENTOS:
+{texto_movimientos}
+
+DEUDAS PENDIENTES:
+{texto_deudas}
+
+PRÉSTAMOS POR COBRAR:
+{texto_prestamos}
+
+AGENDA PRÓXIMA:
+{texto_agenda}
+"""
+
+    finally:
+        cursor.close()
+        conn.close()    
 
 
 def get_db_connection():
@@ -2629,8 +2774,39 @@ def consultar():
             }), 500
 
     try:
+        contexto_orion = construir_contexto_orion(current_user.id)
+
+        prompt_final = f"""
+Eres ORION, el asistente inteligente de Orion 360.
+
+Tu tarea es ayudar al usuario con su información real dentro de la app:
+- finanzas
+- ingresos
+- gastos
+- deudas
+- préstamos
+- agenda
+- movimientos
+- facturas
+- organización personal
+
+REGLAS IMPORTANTES:
+1. Responde siempre en español.
+2. Usa solamente los datos proporcionados en el contexto.
+3. No inventes datos que no estén en el contexto.
+4. Si el usuario pregunta algo que no está disponible, responde que no tienes ese dato cargado.
+5. Sé claro, directo y útil.
+6. Cuando hables de dinero, usa formato en pesos.
+7. El contexto pertenece únicamente al usuario autenticado actual.
+
+{contexto_orion}
+
+PREGUNTA DEL USUARIO:
+{consulta_usuario}
+"""
+
         texto_respuesta = generar_respuesta_groq(
-            consulta_usuario,
+            prompt_final,
             imagen_binaria,
             mime_type
         )
@@ -2638,11 +2814,12 @@ def consultar():
         return jsonify({"mensaje": texto_respuesta})
 
     except Exception as e:
+        print("Error en consultar ORION:", e)
         return jsonify({
             "error": str(e),
             "mensaje": f"❌ Error al procesar la consulta: {str(e)}"
         }), 500
-
+    
 
 @app.route('/groq_status')
 @login_required
@@ -2775,7 +2952,7 @@ def procesar_factura():
             return jsonify({'error': 'La imagen está vacía'}), 400
 
         # Groq con base64 funciona mejor con imágenes no muy pesadas
-        if len(imagen_binaria) > 4 * 1024 * 1024:
+        if len(imagen_binaria) > 8 * 1024 * 1024:
             return jsonify({'error': 'La imagen es muy pesada. Usa una imagen menor a 4 MB.'}), 400
 
         tipo = imagen.mimetype.split('/')[-1]
@@ -2915,7 +3092,7 @@ def guardar_factura():
         flash('Ocurrió un error al guardar el gasto.', 'danger')
         return redirect(url_for('escanear_factura'))
 
-        
+
 
 # ══════════════════════════════════════════════════════════
 # PUNTO DE ENTRADA
