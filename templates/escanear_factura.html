@@ -130,6 +130,12 @@
     animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 620px) {
+    .scanner-page { max-width: 100%; }
+    .upload-zone { padding: 36px 18px; }
+    .result-card { padding: 20px; }
+}
 </style>
 {% endblock %}
 
@@ -138,7 +144,7 @@
 
   <div class="scanner-header">
     <h1><i class="fa-solid fa-receipt" style="margin-right:8px;color:var(--accent)"></i>Escanear factura</h1>
-    <p>Sube una foto de tu factura o recibo y Gemini extraerá los datos automáticamente.</p>
+    <p>Sube una foto de tu factura o recibo y Groq extraerá los datos automáticamente.</p>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -151,35 +157,31 @@
     {% endfor %}
   {% endwith %}
 
-  <!-- Zona de carga -->
   <div class="upload-zone" id="uploadZone">
-    <input type="file" id="inputImagen" accept="image/*" capture="environment">
+    <input type="file" id="inputImagen" accept="image/jpeg,image/png,image/webp" capture="environment">
     <div class="upload-icon"><i class="fa-solid fa-camera-retro"></i></div>
     <div class="upload-title">Toca para tomar foto o seleccionar imagen</div>
-    <div class="upload-sub">JPG, PNG o WEBP · máx 5 MB</div>
+    <div class="upload-sub">JPG, PNG o WEBP · máximo 4 MB</div>
   </div>
 
-  <!-- Preview -->
   <div class="preview-section" id="previewSection">
     <div class="preview-img-wrap">
       <img id="previewImg" src="" alt="Vista previa de la factura">
     </div>
     <button class="btn-scan" id="btnScan" type="button">
       <i class="fa-solid fa-wand-magic-sparkles"></i>
-      Analizar con Gemini
+      Analizar con Groq
     </button>
     <button class="btn-reiniciar" type="button" onclick="reiniciar()">
       <i class="fa-solid fa-arrow-rotate-left"></i> Cambiar imagen
     </button>
   </div>
 
-  <!-- Loading -->
   <div class="loading-state" id="loadingState">
     <div class="spinner"></div>
-    <span>Leyendo la factura...</span>
+    <span>Leyendo la factura con Groq...</span>
   </div>
 
-  <!-- Resultado -->
   <div class="result-card" id="resultCard">
     <div>
       <h3><i class="fa-solid fa-circle-check" style="color:var(--green);margin-right:6px"></i>Datos extraídos</h3>
@@ -202,7 +204,7 @@
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <div class="form-field">
-            <label>Monto (total)</label>
+            <label>Monto total</label>
             <input type="number" name="monto" id="campoMonto" step="0.01" min="0" required>
           </div>
           <div class="form-field">
@@ -212,7 +214,7 @@
         </div>
 
         <div class="form-field">
-          <label>Categoría (opcional)</label>
+          <label>Categoría opcional</label>
           <select name="categoria_id">
             <option value="">Sin categoría</option>
             {% for cat in categorias %}
@@ -236,20 +238,45 @@
 </div>
 
 <script>
-const inputImagen  = document.getElementById('inputImagen');
-const uploadZone   = document.getElementById('uploadZone');
+const inputImagen = document.getElementById('inputImagen');
+const uploadZone = document.getElementById('uploadZone');
 const previewSection = document.getElementById('previewSection');
-const previewImg   = document.getElementById('previewImg');
+const previewImg = document.getElementById('previewImg');
 const loadingState = document.getElementById('loadingState');
-const resultCard   = document.getElementById('resultCard');
-const btnScan      = document.getElementById('btnScan');
+const resultCard = document.getElementById('resultCard');
+const btnScan = document.getElementById('btnScan');
 
 let archivoSeleccionado = null;
 
+function validarImagen(file) {
+    if (!file) return false;
+
+    const formatosPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!formatosPermitidos.includes(file.type)) {
+        alert('Formato no válido. Usa JPG, PNG o WEBP.');
+        return false;
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+        alert('La imagen es muy pesada. Usa una imagen menor a 4 MB.');
+        return false;
+    }
+
+    return true;
+}
+
 inputImagen.addEventListener('change', function () {
     const file = this.files[0];
-    if (!file) return;
+
+    if (!validarImagen(file)) {
+        inputImagen.value = '';
+        archivoSeleccionado = null;
+        return;
+    }
+
     archivoSeleccionado = file;
+
     const reader = new FileReader();
     reader.onload = e => {
         previewImg.src = e.target.result;
@@ -259,15 +286,31 @@ inputImagen.addEventListener('change', function () {
     reader.readAsDataURL(file);
 });
 
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('drag-over');
+});
+
 uploadZone.addEventListener('drop', e => {
     e.preventDefault();
     uploadZone.classList.remove('drag-over');
+
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-        inputImagen.files = e.dataTransfer.files;
-        inputImagen.dispatchEvent(new Event('change'));
+
+    if (file && validarImagen(file)) {
+        archivoSeleccionado = file;
+
+        const reader = new FileReader();
+        reader.onload = ev => {
+            previewImg.src = ev.target.result;
+            uploadZone.style.display = 'none';
+            previewSection.classList.add('visible');
+        };
+        reader.readAsDataURL(file);
     }
 });
 
@@ -275,6 +318,7 @@ btnScan.addEventListener('click', async function () {
     if (!archivoSeleccionado) return;
 
     previewSection.classList.remove('visible');
+    resultCard.classList.remove('visible');
     loadingState.classList.add('visible');
     btnScan.disabled = true;
 
@@ -282,28 +326,31 @@ btnScan.addEventListener('click', async function () {
     formData.append('imagen', archivoSeleccionado);
 
     try {
-        const response = await fetch('/procesar_factura', {
+        const response = await fetch('{{ url_for("procesar_factura") }}', {
             method: 'POST',
             body: formData,
             headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
         });
-        const data = await response.json();
 
+        const data = await response.json();
         loadingState.classList.remove('visible');
 
-        if (data.error) {
-            alert('Error: ' + data.error);
+        if (!response.ok || data.error) {
+            alert('Error: ' + (data.error || 'No se pudo procesar la factura.'));
             reiniciar();
             return;
         }
 
         document.getElementById('campoDescripcion').value = data.descripcion || '';
-        document.getElementById('campoMonto').value       = data.monto || '';
-        document.getElementById('campoFecha').value       = data.fecha || '';
+        document.getElementById('campoMonto').value = data.monto || '';
+        document.getElementById('campoFecha').value = data.fecha || '';
 
         if (data.advertencia) {
             document.getElementById('advertencia').classList.add('visible');
             document.getElementById('advertenciaTexto').textContent = data.advertencia;
+        } else {
+            document.getElementById('advertencia').classList.remove('visible');
+            document.getElementById('advertenciaTexto').textContent = '';
         }
 
         resultCard.classList.add('visible');
@@ -312,18 +359,21 @@ btnScan.addEventListener('click', async function () {
         loadingState.classList.remove('visible');
         alert('Error de conexión: ' + err.message);
         reiniciar();
+    } finally {
+        btnScan.disabled = false;
     }
 });
 
 function reiniciar() {
     archivoSeleccionado = null;
-    inputImagen.value   = '';
-    previewImg.src      = '';
+    inputImagen.value = '';
+    previewImg.src = '';
     uploadZone.style.display = '';
     previewSection.classList.remove('visible');
     loadingState.classList.remove('visible');
     resultCard.classList.remove('visible');
     document.getElementById('advertencia').classList.remove('visible');
+    document.getElementById('advertenciaTexto').textContent = '';
     btnScan.disabled = false;
 }
 </script>

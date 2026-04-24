@@ -23,6 +23,7 @@ import psycopg2
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from groq import Groq
 from google import genai
 from google.genai import types
 from PIL import Image
@@ -466,42 +467,90 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════
-# CONFIGURACIÓN GEMINI (nueva librería google-genai)
+# CONFIGURACIÓN GROQ
 # ══════════════════════════════════════════════════════════
 
-def inicializar_gemini():
-    api_key = app.config.get('GEMINI_API_KEY')
-    if not api_key or api_key == 'your_gemini_api_key_here':
-        print('⚠️ GEMINI_API_KEY no configurado.')
+def inicializar_groq():
+    api_key = app.config.get('GROQ_API_KEY')
+
+    if not api_key:
+        print('⚠️ GROQ_API_KEY no configurada; la función de asistente no funcionará.')
         return None
+
     try:
-        cliente = genai.Client(api_key=api_key)
-        print('✅ Gemini API inicializada correctamente.')
+        cliente = Groq(api_key=api_key)
+        print('✅ Groq API inicializada correctamente.')
         return cliente
     except Exception as e:
-        print('⚠️ No se pudo inicializar Gemini:', str(e)[:180])
+        print('⚠️ No se pudo inicializar Groq:', str(e)[:180])
         return None
 
 
-def generar_respuesta_gemini(prompt, imagen_binaria=None, mime_type=None):
-    if model is None:
-        raise RuntimeError('GEMINI_API_KEY no está configurado o el modelo no se inició.')
+groq_client = inicializar_groq()
 
-    contenido = ['Responde siempre en español.', prompt]
+
+def generar_respuesta_groq(prompt, imagen_binaria=None, mime_type=None):
+    if groq_client is None:
+        raise RuntimeError('GROQ_API_KEY no está configurada o Groq no se inició.')
+
+    # Modelo rápido para texto
+    modelo_texto = 'llama-3.3-70b-versatile'
+
+    # Modelo multimodal para imágenes/facturas
+    modelo_vision = 'meta-llama/llama-4-maverick-17b-128e-instruct'
 
     if imagen_binaria and mime_type:
-        contenido.append(
-            types.Part.from_bytes(data=imagen_binaria, mime_type=mime_type)
+        imagen_base64 = base64.b64encode(imagen_binaria).decode('utf-8')
+
+        messages = [
+            {
+                'role': 'system',
+                'content': 'Responde siempre en español. Si se solicita JSON, responde únicamente JSON válido.'
+            },
+            {
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': prompt
+                    },
+                    {
+                        'type': 'image_url',
+                        'image_url': {
+                            'url': f'data:{mime_type};base64,{imagen_base64}'
+                        }
+                    }
+                ]
+            }
+        ]
+
+        respuesta = groq_client.chat.completions.create(
+            model=modelo_vision,
+            messages=messages,
+            temperature=0.1,
+            max_completion_tokens=1024
         )
 
-    respuesta = model.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=contenido
-    )
-    return respuesta.text
+    else:
+        messages = [
+            {
+                'role': 'system',
+                'content': 'Responde siempre en español, claro y útil.'
+            },
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ]
 
+        respuesta = groq_client.chat.completions.create(
+            model=modelo_texto,
+            messages=messages,
+            temperature=0.4,
+            max_completion_tokens=1200
+        )
 
-model = inicializar_gemini()
+    return respuesta.choices[0].message.content
 
 # ══════════════════════════════════════════════════════════
 # CONFIGURACIÓN ARCHIVOS & FILTROS JINJA
@@ -2540,7 +2589,7 @@ def editar_idea(id):
 
 
 # ══════════════════════════════════════════════════════════
-# ASISTENTE (Gemini)
+# ASISTENTE (Groq)
 # ══════════════════════════════════════════════════════════
 
 @app.route('/asistente')
@@ -2553,53 +2602,161 @@ def asistente():
 @login_required
 def consultar():
     consulta_usuario = request.form.get('consulta', '')
-    imagen           = request.files.get('imagen', None)
+    imagen = request.files.get('imagen', None)
 
     if not consulta_usuario:
         return jsonify({"error": "Consulta vacía", "mensaje": "⚠️ Consulta vacía"}), 400
 
     imagen_binaria = None
-    mime_type      = None
+    mime_type = None
+
     if imagen and imagen.filename != "":
         try:
             imagen_binaria = imagen.read()
+
             if imagen_binaria:
                 tipo = imagen.mimetype.split("/")[-1]
+
                 if tipo == "jpg":
                     tipo = "jpeg"
+
                 mime_type = f"image/{tipo}"
+
         except Exception as e:
-            return jsonify({"error": str(e), "mensaje": f"❌ Error al procesar la imagen: {str(e)}"}), 500
+            return jsonify({
+                "error": str(e),
+                "mensaje": f"❌ Error al procesar la imagen: {str(e)}"
+            }), 500
 
     try:
-        texto_respuesta = generar_respuesta_gemini(consulta_usuario, imagen_binaria, mime_type)
+        texto_respuesta = generar_respuesta_groq(
+            consulta_usuario,
+            imagen_binaria,
+            mime_type
+        )
+
         return jsonify({"mensaje": texto_respuesta})
+
     except Exception as e:
-        return jsonify({"error": str(e), "mensaje": f"❌ Error al procesar la consulta: {str(e)}"}), 500
+        return jsonify({
+            "error": str(e),
+            "mensaje": f"❌ Error al procesar la consulta: {str(e)}"
+        }), 500
 
 
-@app.route('/gemini_status')
+@app.route('/groq_status')
 @login_required
-def gemini_status():
+def groq_status():
     return jsonify({
-        "enabled": model is not None,
-        "message": "Gemini está configurado." if model is not None else "Gemini no está disponible. Verifica GEMINI_API_KEY."
+        "enabled": groq_client is not None,
+        "message": "Groq está configurado." if groq_client is not None else "Groq no está disponible. Verifica GROQ_API_KEY."
     })
+
+# ══════════════════════════════════════════════════════════
+# CONFIGURACIÓN GROQ
+# ══════════════════════════════════════════════════════════
+
+from groq import Groq
+
+def inicializar_groq():
+    api_key = app.config.get('GROQ_API_KEY')
+
+    if not api_key:
+        print('⚠️ GROQ_API_KEY no configurada.')
+        return None
+
+    try:
+        cliente = Groq(api_key=api_key)
+        print('✅ Groq API inicializada correctamente.')
+        return cliente
+    except Exception as e:
+        print('⚠️ No se pudo inicializar Groq:', str(e)[:180])
+        return None
+
+
+groq_client = inicializar_groq()
+
+
+def generar_respuesta_groq(prompt, imagen_binaria=None, mime_type=None):
+    if groq_client is None:
+        raise RuntimeError('GROQ_API_KEY no está configurada o Groq no se inició.')
+
+    modelo_texto = 'llama-3.3-70b-versatile'
+    modelo_vision = 'meta-llama/llama-4-scout-17b-16e-instruct'
+
+    if imagen_binaria and mime_type:
+        imagen_base64 = base64.b64encode(imagen_binaria).decode('utf-8')
+
+        respuesta = groq_client.chat.completions.create(
+            model=modelo_vision,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres ORION, el asistente inteligente de Orion 360. "
+                        "Responde siempre en español. Si se solicita JSON, "
+                        "devuelve únicamente JSON válido."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{imagen_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.1,
+            max_completion_tokens=1024,
+            response_format={"type": "json_object"}
+        )
+    else:
+        respuesta = groq_client.chat.completions.create(
+            model=modelo_texto,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Eres ORION, el asistente inteligente de Orion 360. "
+                        "Ayudas con agenda, finanzas, deudas, préstamos, gastos, "
+                        "ingresos, tareas, compras, ideas y configuración. "
+                        "Responde claro, útil, práctico y siempre en español. "
+                        "No inventes datos privados si no fueron consultados desde la app."
+                    )
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.4,
+            max_completion_tokens=1200
+        )
+
+    return respuesta.choices[0].message.content
 
 
 # ══════════════════════════════════════════════════════════
-# ESCÁNER DE FACTURAS
+# ESCÁNER DE FACTURAS (Groq)
 # ══════════════════════════════════════════════════════════
 
 @app.route('/escanear_factura', methods=['GET'])
 @login_required
 def escanear_factura():
-    conn   = get_db_connection()
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, nombre FROM categorias WHERE usuario_id = ?', (current_user.id,))
+
+    cursor.execute(
+        'SELECT id, nombre FROM categorias WHERE usuario_id = ?',
+        (current_user.id,)
+    )
     categorias = cursor.fetchall()
+
     cursor.close()
     conn.close()
+
     return render_template('escanear_factura.html', categorias=categorias)
 
 
@@ -2613,53 +2770,87 @@ def procesar_factura():
 
     try:
         imagen_binaria = imagen.read()
+
+        if not imagen_binaria:
+            return jsonify({'error': 'La imagen está vacía'}), 400
+
+        # Groq con base64 funciona mejor con imágenes no muy pesadas
+        if len(imagen_binaria) > 4 * 1024 * 1024:
+            return jsonify({'error': 'La imagen es muy pesada. Usa una imagen menor a 4 MB.'}), 400
+
         tipo = imagen.mimetype.split('/')[-1]
+
         if tipo == 'jpg':
             tipo = 'jpeg'
+
+        if tipo not in ['jpeg', 'png', 'webp']:
+            return jsonify({'error': 'Formato no soportado. Usa JPG, PNG o WEBP.'}), 400
+
         mime_type = f'image/{tipo}'
+
     except Exception as e:
         return jsonify({'error': f'Error al leer la imagen: {str(e)}'}), 500
 
-    prompt = """Analiza esta factura o recibo y extrae la información en formato JSON.
-Responde ÚNICAMENTE con el JSON, sin texto adicional, sin bloques de código, sin explicaciones.
+    prompt = f"""Analiza esta factura o recibo y extrae la información en formato JSON.
+
+Fecha de hoy: {date.today().isoformat()}
+
+Responde ÚNICAMENTE con JSON válido.
+No uses markdown.
+No uses bloques de código.
+No agregues explicaciones.
+
 El JSON debe tener exactamente estas claves:
-{
+{{
   "descripcion": "nombre del establecimiento o descripción del gasto",
   "monto": 0.00,
   "fecha": "YYYY-MM-DD"
-}
-Si no puedes leer algún campo con certeza, usa estos valores por defecto:
-- descripcion: "Gasto escaneado"
-- monto: 0.00
-- fecha: fecha de hoy en formato YYYY-MM-DD
-Responde SOLO el JSON, nada más."""
+}}
+
+Reglas:
+- "descripcion" debe ser corta y clara.
+- "monto" debe ser numérico, sin símbolo de moneda, sin puntos de miles.
+- "fecha" debe estar en formato YYYY-MM-DD.
+- Si el recibo está en español, interpreta total, subtotal, valor pagado o total a pagar.
+- Si no puedes leer algún campo con certeza, usa:
+  - descripcion: "Gasto escaneado"
+  - monto: 0.00
+  - fecha: "{date.today().isoformat()}"
+
+Responde SOLO JSON válido."""
 
     try:
-        resultado = generar_respuesta_gemini(prompt, imagen_binaria, mime_type)
+        resultado = generar_respuesta_groq(prompt, imagen_binaria, mime_type)
+        resultado = (resultado or '').strip()
 
-        # Limpiar la respuesta por si Gemini agrega texto extra
-        resultado = resultado.strip()
-        if resultado.startswith('```'):
-            resultado = resultado.split('```')[1]
-            if resultado.startswith('json'):
-                resultado = resultado[4:]
-        resultado = resultado.strip()
+        # Limpieza defensiva por si el modelo devuelve texto extra
+        resultado = resultado.replace('```json', '').replace('```', '').strip()
+
+        inicio = resultado.find('{')
+        fin = resultado.rfind('}')
+
+        if inicio != -1 and fin != -1:
+            resultado = resultado[inicio:fin + 1]
 
         datos = json.loads(resultado)
 
-        # Validar y limpiar los datos
         descripcion = str(datos.get('descripcion', 'Gasto escaneado')).strip()
-        fecha       = str(datos.get('fecha', date.today().isoformat())).strip()
+        fecha = str(datos.get('fecha', date.today().isoformat())).strip()
+
+        monto_raw = datos.get('monto', 0)
+
         try:
-            monto = float(datos.get('monto', 0))
+            monto = float(str(monto_raw).replace('$', '').replace(',', '').strip())
         except (ValueError, TypeError):
             monto = 0.0
 
-        # Validar formato de fecha
         try:
             datetime.strptime(fecha, '%Y-%m-%d')
         except ValueError:
             fecha = date.today().isoformat()
+
+        if not descripcion:
+            descripcion = 'Gasto escaneado'
 
         return jsonify({
             'exito': True,
@@ -2669,7 +2860,6 @@ Responde SOLO el JSON, nada más."""
         })
 
     except json.JSONDecodeError:
-        # Si Gemini no devuelve JSON válido, devolver valores por defecto
         return jsonify({
             'exito': True,
             'descripcion': 'Gasto escaneado',
@@ -2677,7 +2867,9 @@ Responde SOLO el JSON, nada más."""
             'fecha': date.today().isoformat(),
             'advertencia': 'No se pudo leer la factura con claridad. Completa los datos manualmente.'
         })
+
     except Exception as e:
+        print('Error Groq factura:', e)
         return jsonify({'error': f'Error al procesar: {str(e)}'}), 500
 
 
@@ -2685,9 +2877,9 @@ Responde SOLO el JSON, nada más."""
 @login_required
 def guardar_factura():
     try:
-        fecha       = (request.form.get('fecha') or '').strip()
+        fecha = (request.form.get('fecha') or '').strip()
         descripcion = (request.form.get('descripcion') or '').strip()
-        monto_raw   = (request.form.get('monto') or '0').strip()
+        monto_raw = (request.form.get('monto') or '0').strip()
         categoria_id = request.form.get('categoria_id') or None
 
         if not fecha or not descripcion:
@@ -2700,12 +2892,17 @@ def guardar_factura():
             flash('El monto no es válido.', 'danger')
             return redirect(url_for('escanear_factura'))
 
-        conn   = get_db_connection()
+        conn = get_db_connection()
         cursor = conn.cursor()
+
         cursor.execute(
-            'INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id) VALUES (?, ?, ?, ?, ?, ?)',
+            '''
+            INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
             (fecha, descripcion, monto, 'gasto', current_user.id, categoria_id)
         )
+
         conn.commit()
         cursor.close()
         conn.close()
@@ -2716,8 +2913,9 @@ def guardar_factura():
     except Exception as e:
         print('Error al guardar factura:', e)
         flash('Ocurrió un error al guardar el gasto.', 'danger')
-        return redirect(url_for('escanear_factura'))    
+        return redirect(url_for('escanear_factura'))
 
+        
 
 # ══════════════════════════════════════════════════════════
 # PUNTO DE ENTRADA

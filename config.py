@@ -21,6 +21,7 @@ class Config:
     CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
     CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
     OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY')
+    GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
 
     # Flask-Mail
     MAIL_SERVER = 'smtp.gmail.com'
