@@ -1,178 +1,226 @@
+/* ═══════════════════════════════════════
+   ASISTENTE ORION — CHAT UI RESPONSIVE
+═══════════════════════════════════════ */
+
 .contenedor-asistente {
+  width: 100%;
+  min-height: calc(100vh - 72px);
+  background: var(--bg-base);
+  padding: 24px;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 82.2vh;
-  background-color: var(--bg-base);
-  padding: 2rem;
+  align-items: stretch;
+  box-sizing: border-box;
 }
 
 .contenedor {
+  width: 100%;
+  max-width: 920px;
+  height: calc(100vh - 120px);
+  min-height: 560px;
   display: flex;
   flex-direction: column;
-  min-height: 560px;
-  width: 100%;
-  max-width: 760px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
   overflow: hidden;
 }
 
-@media (max-width: 800px) {
-  .contenedor {
-    max-width: 100%;
-    width: 100%;
-  }
-}
-
-/* Título fijo */
-h1 {
-  text-align: center;
-  padding: 24px 20px;
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  margin: 0;
+/* Header */
+.contenedor h1 {
   flex-shrink: 0;
-  font-size: 1.5rem;
-  letter-spacing: 0.01em;
+  margin: 0;
+  padding: 18px 22px;
+  text-align: left;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: 700;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Imagen previa fija, sin forzar el alto del contenedor */
+/* Preview imagen */
 #imagenPrevioContainer {
   flex-shrink: 0;
-  padding: 0 15px;
-  overflow: hidden;
-}
-#imagenPrevio {
-  max-width: 100%;
-  margin-top: 10px;
-  border-radius: 8px;
-  max-height: 150px;
-  object-fit: contain;
+  padding: 12px 18px 0;
+  background: var(--bg-elevated);
 }
 
-/* Área del chat con scroll interno */
+#imagenPrevio {
+  max-width: 160px;
+  max-height: 120px;
+  border-radius: 12px;
+  object-fit: contain;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Chat con scroll interno */
 #chat {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 22px;
-  background-color: var(--bg-elevated);
-  min-height: 0; /* Clave para evitar que crezca fuera del contenedor */
+  background: var(--bg-elevated);
+  scroll-behavior: smooth;
+}
+
+/* Scroll bonito */
+#chat::-webkit-scrollbar {
+  width: 8px;
+}
+
+#chat::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+#chat::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Mensajes */
 .mensaje {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  margin: 10px;
+  margin: 12px 0;
 }
+
 .mensaje.usuario {
   align-items: flex-end;
 }
+
 .mensaje.asistente {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
+
 .burbuja {
-  max-width: 60%;
-  padding: 14px 18px;
-  border-radius: 20px;
+  max-width: min(78%, 680px);
+  padding: 14px 17px;
+  border-radius: 18px;
   font-size: 15px;
   line-height: 1.6;
-  white-space: normal;
-  overflow-wrap: break-word; /* Evita que palabras largas rompan */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid transparent;
-}
-.burbuja u strong {
-  display: block;
-  font-size: 16px;
-  margin-top: 10px;
-  margin-bottom: 5px;
-  text-decoration: underline;
-  font-weight: bold;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 
 .usuario .burbuja {
-  background-color: var(--accent);
+  background: var(--accent);
   color: var(--accent-text);
-  border-bottom-right-radius: 0;
-}
-.asistente .burbuja {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 6px;
 }
 
+.asistente .burbuja {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  border-bottom-left-radius: 6px;
+}
+
+.burbuja u strong {
+  display: block;
+  font-size: 15px;
+  margin: 10px 0 5px;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.imagen-mensaje {
+  max-width: 170px;
+  max-height: 170px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  object-fit: contain;
+  border: 1px solid var(--border-subtle);
+}
 
 /* Formulario fijo abajo */
-form {
-  min-height: 80px;
-  width: 100%;
+.contenedor form {
   flex-shrink: 0;
+  width: 100%;
+  min-height: 78px;
+  padding: 14px 16px;
   display: flex;
-  padding: 18px;
-  border-top: 1px solid var(--border-subtle);
+  align-items: flex-end;
   gap: 10px;
-  align-items: center;
-  box-sizing: border-box;
   background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  box-sizing: border-box;
 }
 
-/* Ícono de imagen (FontAwesome) */
+/* Botón imagen */
 .icono-imagen {
-  font-size: 20px;
-  color: var(--text-primary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 14px;
   background: var(--bg-hover);
-  transition: background-color var(--transition);
-}
-.icono-imagen:hover {
-  background-color: var(--bg-active);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
 }
 
-/* Campo de texto */
-input[type="text"] {
+.icono-imagen:hover {
+  background: var(--bg-active);
+  transform: translateY(-1px);
+}
+
+/* Input tipo chat */
+.contenedor input[type="text"] {
   flex: 1;
-  height: 100%;
-  font-size: 16px;
-  padding: 0 14px;
-  border-radius: 12px;
+  min-width: 0;
+  height: 46px;
+  max-height: 46px;
+  padding: 0 16px;
+  border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--bg-base);
   color: var(--text-primary);
+  font-size: 15px;
+  font-family: var(--font-sans);
+  outline: none;
   box-sizing: border-box;
 }
-input[type="text"]::placeholder {
-  color: var(--text-secondary);
+
+.contenedor input[type="text"]:focus {
+  border-color: var(--accent);
 }
 
-/* Botón de enviar */
-input[type="submit"] {
-  background-color: var(--accent);
-  color: var(--accent-text);
-  padding: 0 40px;
-  height: 100%;
+.contenedor input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+/* Botón enviar */
+.contenedor input[type="submit"] {
+  height: 46px;
+  flex-shrink: 0;
+  padding: 0 22px;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color var(--transition);
-}
-input[type="submit"]:hover {
-  background-color: #f8ff8b;
+  transition: opacity var(--transition), transform var(--transition);
 }
 
+.contenedor input[type="submit"]:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
 
+/* Animación escribiendo */
+.burbuja.animada {
+  min-height: 24px;
+  font-style: italic;
+  color: var(--text-muted);
+}
 
 .burbuja.animada::after {
   content: '|';
@@ -185,17 +233,90 @@ input[type="submit"]:hover {
   50% { opacity: 0; }
 }
 
-.burbuja.animada {
-  min-height: 24px; /* para que la animación no contraiga la burbuja */
-  font-style: italic;
-  color: #888;
+/* Tablet */
+@media (max-width: 900px) {
+  .contenedor-asistente {
+    padding: 16px;
+  }
+
+  .contenedor {
+    max-width: 100%;
+    height: calc(100vh - 105px);
+    min-height: 520px;
+  }
+
+  .burbuja {
+    max-width: 86%;
+  }
 }
 
+/* Móvil */
+@media (max-width: 600px) {
+  .contenedor-asistente {
+    padding: 0;
+    min-height: calc(100vh - 64px);
+  }
 
-.imagen-mensaje {
-  max-width: 150px;
-  border-radius: 8px;
-  margin-bottom: 5px;
-  object-fit: contain;
+  .contenedor {
+    height: calc(100vh - 64px);
+    min-height: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .contenedor h1 {
+    padding: 15px 16px;
+    font-size: 1rem;
+  }
+
+  #chat {
+    padding: 16px 14px;
+  }
+
+  .burbuja {
+    max-width: 92%;
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+
+  .contenedor form {
+    min-height: 72px;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .icono-imagen {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .contenedor input[type="text"] {
+    height: 42px;
+    font-size: 14px;
+    padding: 0 12px;
+  }
+
+  .contenedor input[type="submit"] {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
 }
 
+/* Móvil pequeño */
+@media (max-width: 390px) {
+  .contenedor input[type="submit"] {
+    padding: 0 11px;
+  }
+
+  .icono-imagen {
+    width: 40px;
+    height: 40px;
+  }
+
+  .contenedor input[type="text"] {
+    height: 40px;
+  }
+}
