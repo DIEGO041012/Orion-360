@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block titulo %}{{ producto.nombre or 'Detalle producto' }}{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_detalle_producto.css') }}">
@@ -9,48 +11,99 @@
 
 <div class="detalle-wrapper">
 
+    <a href="{{ url_for('compras') }}" class="detalle-volver">
+        <i class="fa-solid fa-arrow-left"></i>
+        Volver a compras
+    </a>
+
     <div class="detalle-container">
 
-        <!-- IMAGEN -->
-        <div class="detalle-img">
-            <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}">
-        </div>
+        <section class="detalle-galeria">
+            <div class="detalle-img">
+                <img
+                    src="{{ producto.imagen or url_for('static', filename='img/default.png') }}"
+                    alt="{{ producto.nombre or 'Producto' }}"
+                    loading="lazy"
+                >
+            </div>
+        </section>
 
-        <!-- INFO -->
-        <div class="detalle-info">
+        <section class="detalle-info">
 
-            <span class="badge-categoria">{{ producto.categoria }}</span>
+            <div class="detalle-top">
+                <span class="badge-categoria">
+                    <i class="fa-solid fa-tag"></i>
+                    {{ producto.categoria or 'Producto' }}
+                </span>
 
-            <h2>{{ producto.nombre }}</h2>
+                {% if producto.tienda %}
+                <span class="badge-tienda">
+                    <i class="fa-solid fa-store"></i>
+                    {{ producto.tienda }}
+                </span>
+                {% endif %}
+            </div>
+
+            <h1>{{ producto.nombre or 'Producto sin nombre' }}</h1>
+
+            <div class="rating-fake">
+                <span><i class="fa-solid fa-star"></i></span>
+                <span><i class="fa-solid fa-star"></i></span>
+                <span><i class="fa-solid fa-star"></i></span>
+                <span><i class="fa-solid fa-star"></i></span>
+                <span><i class="fa-regular fa-star"></i></span>
+                <small>Producto destacado</small>
+            </div>
 
             <p class="descripcion">
-                {{ producto.descripcion }}
+                {{ producto.descripcion or 'Este producto no tiene descripción disponible por el momento.' }}
             </p>
 
             <div class="precio-box">
-                <span class="precio">${{ producto.precio }}</span>
+                <span class="precio-label">Precio</span>
+
+                {% if producto.precio is not none %}
+                    <span class="precio">${{ "{:,.0f}".format(producto.precio|float) }}</span>
+                {% else %}
+                    <span class="precio precio-no-disponible">Precio no disponible</span>
+                {% endif %}
             </div>
 
-            <!-- ACCIONES -->
+            <div class="detalle-beneficios">
+                <div>
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Compra segura
+                </div>
+                <div>
+                    <i class="fa-solid fa-truck-fast"></i>
+                    Envío sujeto a tienda
+                </div>
+                <div>
+                    <i class="fa-solid fa-circle-check"></i>
+                    Producto verificado
+                </div>
+            </div>
+
             <div class="acciones">
-
                 <form action="{{ url_for('agregar_al_carrito') }}" method="POST">
-
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    <input type="hidden" name="nombre" value="{{ producto.nombre }}">
-                    <input type="hidden" name="precio" value="{{ producto.precio }}">
-                    <input type="hidden" name="imagen" value="{{ producto.imagen }}">
+                    <input type="hidden" name="nombre" value="{{ producto.nombre or '' }}">
+                    <input type="hidden" name="precio" value="{{ producto.precio or 0 }}">
+                    <input type="hidden" name="imagen" value="{{ producto.imagen or '' }}">
 
                     <button type="submit" class="btn-comprar">
-                        🛒 Agregar al carrito
+                        <i class="fa-solid fa-bag-shopping"></i>
+                        Agregar al carrito
                     </button>
-
                 </form>
 
+                <a href="{{ url_for('compras') }}" class="btn-secundario">
+                    <i class="fa-solid fa-store"></i>
+                    Seguir explorando
+                </a>
             </div>
 
-        </div>
+        </section>
 
     </div>
 

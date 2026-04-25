@@ -435,6 +435,28 @@ def init_db():
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             );
+            CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
+                id SERIAL PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                token TEXT NOT NULL,
+                marca TEXT,
+                ultimos_4 TEXT,
+                fecha_exp TEXT,
+                activa BOOLEAN DEFAULT TRUE,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            ); 
+            CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                token TEXT NOT NULL,
+                marca TEXT,
+                ultimos_4 TEXT,
+                fecha_exp TEXT,
+                activa INTEGER DEFAULT 1,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );                    
         """)
 
         cursor.execute(
@@ -2361,118 +2383,183 @@ def generar_url_wompi(monto, referencia):
     )
 
 
+# ══════════════════════════════════════════════════════════
+# CARTERA — Vinculación de tarjetas con Wompi
+# ══════════════════════════════════════════════════════════
+
 @app.route('/cartera')
 @login_required
 def cartera():
-    conn = get_db_connection()
-    cur  = conn.cursor()
-    cur.execute("SELECT saldo_wallet FROM usuarios WHERE id=?", (current_user.id,))
-    saldo = cur.fetchone()['saldo_wallet']
-    cur.close()
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT saldo_wallet FROM usuarios WHERE id = ?', (current_user.id,))
+    saldo = cursor.fetchone()['saldo_wallet']
+
+    cursor.execute('''
+        SELECT marca, ultimos_4, fecha_exp
+        FROM tarjetas_vinculadas
+        WHERE usuario_id = ? AND activa = TRUE
+        ORDER BY fecha_creacion DESC LIMIT 1
+    ''', (current_user.id,))
+    tarjeta = cursor.fetchone()
+    cursor.close()
     conn.close()
-    return render_template('cartera.html', saldo=saldo)
 
-
-@app.route('/iniciar_paypal', methods=['POST'])
-@login_required
-def iniciar_paypal():
-    monto = request.form.get('monto')
-    if not monto:
-        flash("Monto faltante", "danger")
-        return redirect(url_for('cartera'))
-
-    transaccion_id = f"PAYPAL-{current_user.id}-{int(datetime.now().timestamp())}"
-    conn = get_db_connection()
-    cur  = conn.cursor()
-    cur.execute(
-        "INSERT INTO recargas (usuario_id, metodo, transaccion_id, monto) VALUES (?, 'paypal', ?, ?)",
-        (current_user.id, transaccion_id, monto)
+    return render_template(
+        'cartera.html',
+        saldo=saldo,
+        tarjeta=tarjeta,
+        wompi_public_key=os.environ.get('WOMPI_PUBLIC_KEY', '')
     )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return render_template('paypal_checkout.html', transaccion_id=transaccion_id, monto=monto)
 
 
-@app.route('/procesar_pago_paypal', methods=['POST'])
+@app.route('/vincular_tarjeta', methods=['POST'])
 @login_required
-def procesar_pago_paypal():
-    data  = request.get_json()
-    txid  = data['orderID']
-    monto = data['monto']
+def vincular_tarjeta():
+    """
+    Recibe el token generado por el widget de Wompi en el frontend.
+    Consulta la API de Wompi para obtener los datos reales de la tarjeta.
+    """
+    data       = request.get_json()
+    token      = data.get('token')
+    marca      = data.get('brand', '').upper()
+    ultimos_4  = data.get('last_four', '****')
+    fecha_exp  = data.get('exp_month', '') + '/' + data.get('exp_year', '')
 
-    conn = get_db_connection()
-    cur  = conn.cursor()
-    cur.execute("UPDATE recargas SET estado='exitosa' WHERE transaccion_id=?", (txid,))
-    cur.execute("""
-        INSERT INTO wallet_movimientos
-            (usuario_id, referencia_externa, monto, tipo, estado, descripcion, medio_pago)
-        VALUES (?, ?, ?, 'recarga', 'completado', 'Recarga PayPal', 'paypal')
-    """, (current_user.id, txid, monto))
-    cur.execute(
-        "UPDATE usuarios SET saldo_wallet = saldo_wallet + ? WHERE id = ?",
-        (monto, current_user.id)
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify(status='ok')
+    if not token:
+        return jsonify({'exito': False, 'error': 'Token no recibido'}), 400
+
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+
+        # Desactivar tarjetas anteriores del usuario
+        cursor.execute(
+            'UPDATE tarjetas_vinculadas SET activa = FALSE WHERE usuario_id = ?',
+            (current_user.id,)
+        )
+
+        # Guardar nueva tarjeta
+        cursor.execute('''
+            INSERT INTO tarjetas_vinculadas (usuario_id, token, marca, ultimos_4, fecha_exp, activa)
+            VALUES (?, ?, ?, ?, ?, TRUE)
+        ''', (current_user.id, token, marca, ultimos_4, fecha_exp))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return jsonify({'exito': True})
+
+    except Exception as e:
+        print('Error al vincular tarjeta:', e)
+        return jsonify({'exito': False, 'error': str(e)}), 500
+
+
+@app.route('/desvincular_tarjeta', methods=['POST'])
+@login_required
+def desvincular_tarjeta():
+    try:
+        conn   = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE tarjetas_vinculadas SET activa = FALSE WHERE usuario_id = ?',
+            (current_user.id,)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        flash('Tarjeta desvinculada correctamente.', 'success')
+    except Exception as e:
+        print('Error al desvincular:', e)
+        flash('No se pudo desvincular la tarjeta.', 'danger')
+    return redirect(url_for('cartera'))
 
 
 @app.route('/iniciar_wompi', methods=['POST'])
 @login_required
 def iniciar_wompi():
-    monto      = Decimal(request.form.get('monto'))
-    referencia = f"WOMPI-{current_user.id}-{int(datetime.utcnow().timestamp())}"
-    url_pago   = generar_url_wompi(monto, referencia)
+    monto     = Decimal(request.form.get('monto'))
+    referencia = f"ORYON-{current_user.id}-{int(datetime.utcnow().timestamp())}"
 
     conn = get_db_connection()
     cur  = conn.cursor()
+
+    # Verificar si tiene tarjeta vinculada
+    cur.execute('''
+        SELECT token FROM tarjetas_vinculadas
+        WHERE usuario_id = ? AND activa = TRUE
+        ORDER BY fecha_creacion DESC LIMIT 1
+    ''', (current_user.id,))
+    tarjeta = cur.fetchone()
+
     cur.execute(
         "INSERT INTO recargas (usuario_id, metodo, transaccion_id, monto) VALUES (?, 'wompi', ?, ?)",
-        (current_user.id, referencia, monto)
+        (current_user.id, referencia, float(monto))
     )
     conn.commit()
     cur.close()
     conn.close()
+
+    # Si tiene tarjeta vinculada, cobrar con token
+    if tarjeta:
+        try:
+            wompi_private = os.environ.get('WOMPI_PRIVATE_KEY', '')
+            response = requests.post(
+                'https://production.wompi.co/v1/transactions',
+                headers={
+                    'Authorization': f'Bearer {wompi_private}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'amount_in_cents': int(monto * 100),
+                    'currency': 'COP',
+                    'customer_email': current_user.nombre_usuario,
+                    'reference': referencia,
+                    'payment_method': {
+                        'type': 'CARD',
+                        'token': tarjeta['token'],
+                        'installments': 1
+                    }
+                },
+                timeout=15
+            )
+            resp_data = response.json()
+            estado = resp_data.get('data', {}).get('status', '')
+
+            if estado == 'APPROVED':
+                conn   = get_db_connection()
+                cur    = conn.cursor()
+                cur.execute("UPDATE recargas SET estado = 'exitosa' WHERE transaccion_id = ?", (referencia,))
+                cur.execute(
+                    "UPDATE usuarios SET saldo_wallet = saldo_wallet + ? WHERE id = ?",
+                    (float(monto), current_user.id)
+                )
+                conn.commit()
+                cur.close()
+                conn.close()
+                flash(f'Recarga de ${monto:,.0f} COP aprobada.', 'success')
+            else:
+                flash('El pago no fue aprobado. Intenta de nuevo.', 'danger')
+
+            return redirect(url_for('cartera'))
+
+        except Exception as e:
+            print('Error al cobrar con token Wompi:', e)
+            flash('Error al procesar el pago.', 'danger')
+            return redirect(url_for('cartera'))
+
+    # Sin tarjeta vinculada → redirigir al checkout de Wompi
+    monto_centavos = int(monto * 100)
+    url_pago = (
+        f"https://checkout.wompi.co/p/"
+        f"?public-key={os.environ.get('WOMPI_PUBLIC_KEY', '')}"
+        f"&currency=COP"
+        f"&amount-in-cents={monto_centavos}"
+        f"&reference={referencia}"
+        f"&redirect-url={url_for('confirmacion_wompi', _external=True)}"
+    )
     return redirect(url_pago)
-
-
-@app.route('/webhook_wompi', methods=['POST'])
-def webhook_wompi():
-    tx        = request.get_json()['data']['transaction']
-    referencia = tx['reference']
-    estado    = tx['status']
-    monto     = Decimal(tx['amount_in_cents']) / 100
-
-    conn = get_db_connection()
-    cur  = conn.cursor()
-    cur.execute(
-        "UPDATE recargas SET estado=? WHERE transaccion_id=?",
-        ('exitosa' if estado == 'APPROVED' else 'fallida', referencia)
-    )
-    if estado == 'APPROVED':
-        cur.execute("""
-            INSERT OR IGNORE INTO wallet_movimientos
-                (usuario_id, referencia_externa, monto, tipo, estado, descripcion, medio_pago)
-            SELECT usuario_id, transaccion_id, ?, 'recarga', 'completado', 'Recarga Wompi', 'wompi'
-            FROM recargas WHERE transaccion_id=?
-        """, (monto, referencia))
-        cur.execute("""
-            UPDATE usuarios SET saldo_wallet = saldo_wallet + ?
-            WHERE id IN (SELECT usuario_id FROM recargas WHERE transaccion_id=?)
-        """, (monto, referencia))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return '', 200
-
-
-@app.route('/confirmacion_wompi')
-@login_required
-def confirmacion_wompi():
-    flash("Tu recarga ha sido procesada. Revisa tu saldo.", "success")
-    return redirect(url_for('cartera'))
 
 
 # ══════════════════════════════════════════════════════════

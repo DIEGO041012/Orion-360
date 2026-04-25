@@ -1,47 +1,107 @@
 {% extends "base.html" %}
+{% block titulo %}Compras{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_compras.css') }}">
+<style>
+/* 🔥 FIX precio no disponible */
+.precio-no-disponible {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+}
+</style>
 {% endblock %}
 
 {% block contenido %}
+<div class="compras-page">
 
-<div class="container-principal">
+  <!-- Header -->
+  <div class="compras-header">
+    <h1>Tiendas</h1>
+    <p>Explora productos de tus tiendas favoritas y agrégalos a tu carrito.</p>
+  </div>
 
-    {% for tienda, productos in tiendas_productos.items() %}
-    <div class="tienda-section">
-        <div class="tienda-header">
-            <h3>{{ tienda }}</h3>
+  <!-- Loop tiendas -->
+  {% for tienda, productos in tiendas_productos.items() %}
+  <section class="tienda-section">
+
+    <div class="tienda-header">
+      <div class="tienda-header-left">
+        <div class="tienda-icon">
+          <i class="fa-solid fa-store"></i>
         </div>
-
-        <div class="productos-slider">
-            {% for producto in productos %}
-            <div class="producto-card">
-
-                <div class="producto-img">
-                    <img src="{{ producto.imagen }}" alt="{{ producto.nombre }}">
-                </div>
-
-                <div class="producto-info">
-                    <h5>{{ producto.nombre }}</h5>
-                    <p class="precio">${{ producto.precio }}</p>
-
-                    <div class="acciones">
-                        <a href="{{ url_for('producto_detalle', tienda=producto.tienda, nombre=producto.nombre) }}" 
-                           class="btn-ver-mas">Ver</a>
-
-                        <a href="#" class="btn-comprar">Comprar</a>
-                    </div>
-                </div>
-
-            </div>
-            {% endfor %}
+        <div>
+          <h2>{{ tienda }}</h2>
+          <span class="tienda-count">{{ productos|length }} productos</span>
         </div>
+      </div>
     </div>
-    {% endfor %}
+
+    <!-- Carrusel -->
+    <div class="productos-track-wrapper">
+      <div class="productos-track" id="track-{{ loop.index }}">
+
+        {% for producto in productos %}
+        <article class="producto-card">
+
+          <!-- Imagen -->
+          <div class="producto-img-wrap">
+            <img src="{{ producto.imagen or url_for('static', filename='img/default.png') }}"
+                 alt="{{ producto.nombre }}"
+                 loading="lazy">
+
+            <div class="producto-overlay">
+              <a href="{{ url_for('producto_detalle', tienda=producto.tienda, nombre=producto.nombre) }}"
+                 class="overlay-btn">
+                <i class="fa-solid fa-eye"></i> Ver detalle
+              </a>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="producto-body">
+
+            <p class="producto-nombre">
+              {{ producto.nombre or "Producto sin nombre" }}
+            </p>
+
+            <!-- 🔥 FIX ERROR PRECIO -->
+            {% if producto.precio is not none %}
+              <p class="producto-precio">
+                ${{ "{:,.0f}".format(producto.precio|float) }}
+              </p>
+            {% else %}
+              <p class="producto-precio precio-no-disponible">
+                Precio no disponible
+              </p>
+            {% endif %}
+
+            <!-- Acciones -->
+            <div class="producto-acciones">
+              <a href="{{ url_for('producto_detalle', tienda=producto.tienda, nombre=producto.nombre) }}"
+                 class="btn-ver">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                Ver
+              </a>
+
+              <a href="#" class="btn-comprar">
+                <i class="fa-solid fa-bag-shopping"></i>
+                Comprar
+              </a>
+            </div>
+
+          </div>
+
+        </article>
+        {% endfor %}
+
+      </div>
+    </div>
+
+  </section>
+  {% endfor %}
 
 </div>
-
 {% endblock %}
-
