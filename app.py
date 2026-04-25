@@ -295,17 +295,16 @@ def init_db():
 
     if conn.is_postgres:
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                nombre_usuario TEXT NOT NULL UNIQUE,
-                correo_electronico TEXT UNIQUE,
-                contraseña TEXT,
-                foto TEXT,
-                saldo_wallet REAL DEFAULT 0,
-                nit TEXT,
-                direccion TEXT,
-                telefono TEXT,
-                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                token TEXT NOT NULL,
+                marca TEXT,
+                ultimos_4 TEXT,
+                fecha_exp TEXT,
+                activa INTEGER DEFAULT 1,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             );
 
             CREATE TABLE IF NOT EXISTS listas (
