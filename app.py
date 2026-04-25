@@ -296,14 +296,14 @@ def init_db():
     if conn.is_postgres:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 usuario_id INTEGER NOT NULL,
                 token TEXT NOT NULL,
                 marca TEXT,
                 ultimos_4 TEXT,
                 fecha_exp TEXT,
-                activa INTEGER DEFAULT 1,
-                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                activa BOOLEAN DEFAULT TRUE,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             );
 
