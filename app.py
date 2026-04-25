@@ -2478,32 +2478,66 @@ def desvincular_tarjeta():
 @app.route('/iniciar_wompi', methods=['POST'])
 @login_required
 def iniciar_wompi():
-    monto     = Decimal(request.form.get('monto'))
-    referencia = f"ORYON-{current_user.id}-{int(datetime.utcnow().timestamp())}"
+    try:
+        monto_raw = (request.form.get('monto') or '').strip()
 
-    conn = get_db_connection()
-    cur  = conn.cursor()
+        if not monto_raw:
+            flash('Debes ingresar un monto válido.', 'danger')
+            return redirect(url_for('cartera'))
 
-    # Verificar si tiene tarjeta vinculada
-    cur.execute('''
-        SELECT token FROM tarjetas_vinculadas
-        WHERE usuario_id = ? AND activa = TRUE
-        ORDER BY fecha_creacion DESC LIMIT 1
-    ''', (current_user.id,))
-    tarjeta = cur.fetchone()
-
-    cur.execute(
-        "INSERT INTO recargas (usuario_id, metodo, transaccion_id, monto) VALUES (?, 'wompi', ?, ?)",
-        (current_user.id, referencia, float(monto))
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    # Si tiene tarjeta vinculada, cobrar con token
-    if tarjeta:
         try:
-            wompi_private = os.environ.get('WOMPI_PRIVATE_KEY', '')
+            monto = Decimal(monto_raw)
+        except Exception:
+            flash('El monto ingresado no es válido.', 'danger')
+            return redirect(url_for('cartera'))
+
+        if monto <= 0:
+            flash('El monto debe ser mayor a cero.', 'danger')
+            return redirect(url_for('cartera'))
+
+        wompi_public = os.environ.get('WOMPI_PUBLIC_KEY', '').strip()
+        wompi_private = os.environ.get('WOMPI_PRIVATE_KEY', '').strip()
+
+        if not wompi_public:
+            print('ERROR WOMPI: Falta WOMPI_PUBLIC_KEY')
+            flash('Wompi no está configurado correctamente.', 'danger')
+            return redirect(url_for('cartera'))
+
+        referencia = f"ORYON-{current_user.id}-{int(datetime.now(timezone.utc).timestamp())}"
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        try:
+            cur.execute('''
+                SELECT token FROM tarjetas_vinculadas
+                WHERE usuario_id = ? AND activa = TRUE
+                ORDER BY fecha_creacion DESC
+                LIMIT 1
+            ''', (current_user.id,))
+            tarjeta = cur.fetchone()
+
+            cur.execute(
+                '''
+                INSERT INTO recargas (usuario_id, metodo, transaccion_id, monto, estado)
+                VALUES (?, 'wompi', ?, ?, ?)
+                ''',
+                (current_user.id, referencia, float(monto), 'pendiente')
+            )
+
+            conn.commit()
+
+        finally:
+            cur.close()
+            conn.close()
+
+        # Si tiene tarjeta vinculada, cobrar con token
+        if tarjeta:
+            if not wompi_private:
+                print('ERROR WOMPI: Falta WOMPI_PRIVATE_KEY')
+                flash('Wompi no está configurado para cobros con tarjeta guardada.', 'danger')
+                return redirect(url_for('cartera'))
+
             response = requests.post(
                 'https://production.wompi.co/v1/transactions',
                 headers={
@@ -2513,7 +2547,7 @@ def iniciar_wompi():
                 json={
                     'amount_in_cents': int(monto * 100),
                     'currency': 'COP',
-                    'customer_email': current_user.nombre_usuario,
+                    'customer_email': getattr(current_user, 'correo_electronico', None) or 'cliente@orion360.com',
                     'reference': referencia,
                     'payment_method': {
                         'type': 'CARD',
@@ -2521,45 +2555,77 @@ def iniciar_wompi():
                         'installments': 1
                     }
                 },
-                timeout=15
+                timeout=20
             )
-            resp_data = response.json()
+
+            try:
+                resp_data = response.json()
+            except Exception:
+                print('RESPUESTA WOMPI NO JSON:', response.text)
+                flash('Wompi devolvió una respuesta inválida.', 'danger')
+                return redirect(url_for('cartera'))
+
+            print('RESPUESTA WOMPI TOKEN:', resp_data)
+
             estado = resp_data.get('data', {}).get('status', '')
 
-            if estado == 'APPROVED':
-                conn   = get_db_connection()
-                cur    = conn.cursor()
-                cur.execute("UPDATE recargas SET estado = 'exitosa' WHERE transaccion_id = ?", (referencia,))
-                cur.execute(
-                    "UPDATE usuarios SET saldo_wallet = saldo_wallet + ? WHERE id = ?",
-                    (float(monto), current_user.id)
-                )
-                conn.commit()
-                cur.close()
-                conn.close()
+            if response.ok and estado == 'APPROVED':
+                conn = get_db_connection()
+                cur = conn.cursor()
+
+                try:
+                    cur.execute(
+                        "UPDATE recargas SET estado = 'exitosa' WHERE transaccion_id = ?",
+                        (referencia,)
+                    )
+                    cur.execute(
+                        "UPDATE usuarios SET saldo_wallet = saldo_wallet + ? WHERE id = ?",
+                        (float(monto), current_user.id)
+                    )
+                    conn.commit()
+                finally:
+                    cur.close()
+                    conn.close()
+
                 flash(f'Recarga de ${monto:,.0f} COP aprobada.', 'success')
             else:
+                conn = get_db_connection()
+                cur = conn.cursor()
+
+                try:
+                    cur.execute(
+                        "UPDATE recargas SET estado = 'fallida' WHERE transaccion_id = ?",
+                        (referencia,)
+                    )
+                    conn.commit()
+                finally:
+                    cur.close()
+                    conn.close()
+
                 flash('El pago no fue aprobado. Intenta de nuevo.', 'danger')
 
             return redirect(url_for('cartera'))
 
-        except Exception as e:
-            print('Error al cobrar con token Wompi:', e)
-            flash('Error al procesar el pago.', 'danger')
-            return redirect(url_for('cartera'))
+        # Sin tarjeta vinculada → redirigir al checkout de Wompi
+        monto_centavos = int(monto * 100)
 
-    # Sin tarjeta vinculada → redirigir al checkout de Wompi
-    monto_centavos = int(monto * 100)
-    url_pago = (
-        f"https://checkout.wompi.co/p/"
-        f"?public-key={os.environ.get('WOMPI_PUBLIC_KEY', '')}"
-        f"&currency=COP"
-        f"&amount-in-cents={monto_centavos}"
-        f"&reference={referencia}"
-        f"&redirect-url={url_for('confirmacion_wompi', _external=True)}"
-    )
-    return redirect(url_pago)
+        url_pago = (
+            "https://checkout.wompi.co/p/"
+            f"?public-key={wompi_public}"
+            f"&currency=COP"
+            f"&amount-in-cents={monto_centavos}"
+            f"&reference={referencia}"
+            f"&redirect-url={url_for('confirmacion_wompi', _external=True)}"
+        )
 
+        return redirect(url_pago)
+
+    except Exception as e:
+        import traceback
+        print('ERROR EN /iniciar_wompi:', e)
+        traceback.print_exc()
+        flash('Error al iniciar pago con Wompi.', 'danger')
+        return redirect(url_for('cartera'))
 
 # ══════════════════════════════════════════════════════════
 # CONFIGURACIÓN
