@@ -2371,6 +2371,20 @@ def estadisticas_data():
 # CARTERA / PAGOS
 # ══════════════════════════════════════════════════════════
 
+@app.route('/confirmacion_wompi')
+@login_required
+def confirmacion_wompi():
+    transaccion_id = request.args.get('id')
+    referencia = request.args.get('reference')
+
+    if not transaccion_id and not referencia:
+        flash('No se recibió información de confirmación de Wompi.', 'warning')
+        return redirect(url_for('cartera'))
+
+    flash('Pago enviado a verificación. Si fue aprobado, tu saldo se actualizará.', 'info')
+    return redirect(url_for('cartera'))
+
+
 def generar_url_wompi(monto, referencia):
     monto_centavos = int(Decimal(monto) * 100)
     return (
