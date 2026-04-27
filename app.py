@@ -37,6 +37,7 @@ import os
 import sys
 import requests
 from datetime import datetime, timezone
+import pytz  # 👈 IMPORTANTE
 
 load_dotenv()
 
@@ -753,12 +754,19 @@ app.jinja_env.filters['escapejs'] = escapejs_filter
 # CONTEXT PROCESSOR — optimizado: sin consulta SQL por request
 # ══════════════════════════════════════════════════════════
 
+
+
 @app.context_processor
 def inject_user_data():
+    zona = pytz.timezone('America/Bogota')  # 🇨🇴 hora Colombia
+
     if not current_user.is_authenticated:
-        return {}
+        return {
+            'now': datetime.now(zona)  # 👈 agregar esto
+        }
 
     foto = getattr(current_user, 'foto', None)
+
     if not foto:
         foto = "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
     elif not (foto.startswith('http://') or foto.startswith('https://')):
@@ -769,9 +777,9 @@ def inject_user_data():
 
     return {
         'usuario': current_user.nombre_usuario,
-        'usuario_foto': foto
+        'usuario_foto': foto,
+        'now': datetime.now(zona)  # 👈 ESTA LÍNEA ES LA CLAVE
     }
-
 
 # ══════════════════════════════════════════════════════════
 # HELPERS DE FECHA
