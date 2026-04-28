@@ -296,6 +296,19 @@ def init_db():
 
     if conn.is_postgres:
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                nombre_usuario TEXT NOT NULL UNIQUE,
+                correo_electronico TEXT UNIQUE,
+                contraseña TEXT,
+                foto TEXT,
+                saldo_wallet REAL DEFAULT 0,
+                nit TEXT,
+                direccion TEXT,
+                telefono TEXT,
+                fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
                 id SERIAL PRIMARY KEY,
                 usuario_id INTEGER NOT NULL,
@@ -435,28 +448,26 @@ def init_db():
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             );
-            CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
+
+            CREATE TABLE IF NOT EXISTS ahorros (
                 id SERIAL PRIMARY KEY,
-                usuario_id INTEGER NOT NULL,
-                token TEXT NOT NULL,
-                marca TEXT,
-                ultimos_4 TEXT,
-                fecha_exp TEXT,
-                activa BOOLEAN DEFAULT TRUE,
+                usuario_id INTEGER,
+                nombre TEXT,
+                objetivo REAL,
+                ahorrado REAL DEFAULT 0,
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-            ); 
-            CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
+            );
+
+            CREATE TABLE IF NOT EXISTS negocios (
                 id SERIAL PRIMARY KEY,
-                usuario_id INTEGER NOT NULL,
-                token TEXT NOT NULL,
-                marca TEXT,
-                ultimos_4 TEXT,
-                fecha_exp TEXT,
-                activa BOOLEAN DEFAULT TRUE,
+                usuario_id INTEGER,
+                nombre TEXT,
+                ingresos REAL DEFAULT 0,
+                gastos REAL DEFAULT 0,
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-            );                   
+            );
         """)
 
         cursor.execute(
@@ -465,6 +476,7 @@ def init_db():
         columnas_tareas = [row['column_name'] for row in cursor.fetchall()]
         if 'estado' not in columnas_tareas:
             cursor.execute("ALTER TABLE tareas ADD COLUMN estado TEXT DEFAULT 'pendiente'")
+
     else:
         cursor.executescript("""
             CREATE TABLE IF NOT EXISTS usuarios (
@@ -478,6 +490,18 @@ def init_db():
                 direccion TEXT,
                 telefono TEXT,
                 fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS tarjetas_vinculadas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                token TEXT NOT NULL,
+                marca TEXT,
+                ultimos_4 TEXT,
+                fecha_exp TEXT,
+                activa BOOLEAN DEFAULT TRUE,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             );
 
             CREATE TABLE IF NOT EXISTS listas (
@@ -607,6 +631,24 @@ def init_db():
                 fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
             );
+
+            CREATE TABLE IF NOT EXISTS ahorros (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER,
+                nombre TEXT,
+                objetivo REAL,
+                ahorrado REAL DEFAULT 0,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS negocios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER,
+                nombre TEXT,
+                ingresos REAL DEFAULT 0,
+                gastos REAL DEFAULT 0,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
         """)
 
         cursor.execute('PRAGMA table_info(tareas)')
@@ -617,20 +659,6 @@ def init_db():
     conn.commit()
     cursor.close()
     conn.close()
-
-
-try:
-    db_url = app.config.get('DATABASE_URL')
-    conn = get_db_connection()
-    init_db()
-    conn.close()
-    if db_url:
-        print("✅ Conectado a PostgreSQL (Neon) correctamente.")
-    else:
-        print("✅ Conectado a SQLite correctamente.")
-except Exception as e:
-    print("❌ Error conectando a la base de datos")
-    print("Detalle:", str(e))
 
 
 # ══════════════════════════════════════════════════════════
@@ -3265,6 +3293,183 @@ def guardar_factura():
         print('Error al guardar factura:', e)
         flash('Ocurrió un error al guardar el gasto.', 'danger')
         return redirect(url_for('escanear_factura'))
+    
+
+
+@app.route('/ahorros')
+@login_required
+def ahorros():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nombre, objetivo, ahorrado
+        FROM ahorros
+        WHERE usuario_id = ?
+    """, (current_user.id,))
+
+    ahorros = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('ahorros.html', ahorros=ahorros)        
+
+
+@app.route('/negocios')
+@login_required
+def emprendimientos():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nombre, ingresos, gastos
+        FROM negocios
+        WHERE usuario_id = ?
+    """, (current_user.id,))
+
+    negocios = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('negocios.html', negocios=negocios)
+
+@app.route('/ahorros/crear', methods=['POST'])
+@login_required
+def crear_ahorro():
+    nombre   = (request.form.get('nombre') or '').strip()
+    objetivo = request.form.get('objetivo', 0)
+
+    try:
+        objetivo = float(objetivo)
+    except ValueError:
+        flash('Objetivo inválido.', 'danger')
+        return redirect(url_for('ahorros'))
+
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO ahorros (usuario_id, nombre, objetivo, ahorrado)
+            VALUES (?, ?, ?, 0)
+        """, (current_user.id, nombre, objetivo))
+        conn.commit()
+        flash('Ahorro creado correctamente.', 'success')
+    except Exception as e:
+        conn.rollback()
+        print('Error al crear ahorro:', e)
+        flash('Error al crear el ahorro.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('ahorros'))
+
+
+@app.route('/ahorros/abonar', methods=['POST'])
+@login_required
+def abonar_ahorro():
+    ahorro_id = request.form.get('ahorro_id')
+    monto_raw = (request.form.get('monto') or '0').strip()
+
+    try:
+        monto = float(monto_raw)
+    except ValueError:
+        flash('Monto inválido.', 'danger')
+        return redirect(url_for('ahorros'))
+
+    if monto <= 0:
+        flash('El monto debe ser mayor a 0.', 'danger')
+        return redirect(url_for('ahorros'))
+
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE ahorros SET ahorrado = ahorrado + ?
+            WHERE id = ? AND usuario_id = ?
+        """, (monto, ahorro_id, current_user.id))
+        conn.commit()
+        flash('Abono registrado correctamente.', 'success')
+    except Exception as e:
+        conn.rollback()
+        print('Error al abonar ahorro:', e)
+        flash('Error al registrar el abono.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('ahorros'))
+
+
+@app.route('/negocios/crear', methods=['POST'])
+@login_required
+def crear_negocio():
+    nombre = (request.form.get('nombre') or '').strip()
+
+    if not nombre:
+        flash('El nombre es obligatorio.', 'danger')
+        return redirect(url_for('emprendimientos'))
+
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO negocios (usuario_id, nombre, ingresos, gastos)
+            VALUES (?, ?, 0, 0)
+        """, (current_user.id, nombre))
+        conn.commit()
+        flash('Negocio creado correctamente.', 'success')
+    except Exception as e:
+        conn.rollback()
+        print('Error al crear negocio:', e)
+        flash('Error al crear el negocio.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('emprendimientos'))
+
+
+@app.route('/negocios/registrar_movimiento', methods=['POST'])
+@login_required
+def registrar_movimiento_negocio():
+    negocio_id = request.form.get('negocio_id')
+    tipo       = request.form.get('tipo')  # 'ingreso' o 'gasto'
+    monto_raw  = (request.form.get('monto') or '0').strip()
+
+    try:
+        monto = float(monto_raw)
+    except ValueError:
+        flash('Monto inválido.', 'danger')
+        return redirect(url_for('emprendimientos'))
+
+    if tipo not in ('ingreso', 'gasto'):
+        flash('Tipo inválido.', 'danger')
+        return redirect(url_for('emprendimientos'))
+
+    campo = 'ingresos' if tipo == 'ingreso' else 'gastos'
+
+    conn   = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(f"""
+            UPDATE negocios SET {campo} = {campo} + ?
+            WHERE id = ? AND usuario_id = ?
+        """, (monto, negocio_id, current_user.id))
+        conn.commit()
+        flash('Movimiento registrado.', 'success')
+    except Exception as e:
+        conn.rollback()
+        print('Error al registrar movimiento negocio:', e)
+        flash('Error al registrar el movimiento.', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('emprendimientos'))    
+
 
 
 
