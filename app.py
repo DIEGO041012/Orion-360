@@ -53,11 +53,30 @@ print("KEY CARGADA:", os.getenv("GEMINI_API_KEY"))
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# 🔥 GOOGLE LOGIN
+from flask_dance.contrib.google import make_google_blueprint, google
+
+google_bp = make_google_blueprint(
+    client_id=app.config.get("GOOGLE_CLIENT_ID"),
+    client_secret=app.config.get("GOOGLE_CLIENT_SECRET"),
+    scope=[
+        "openid",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile"
+    ],
+    redirect_url="/login/google"
+)
+
+app.register_blueprint(google_bp, url_prefix="/login")
+
+# 👇 LO TUYO SIGUE NORMAL
 print("DATABASE_URL:", app.config.get("DATABASE_URL"))
 print("CLOUDINARY_CLOUD_NAME:", app.config.get("CLOUDINARY_CLOUD_NAME"))
 print("CLOUDINARY_API_KEY:", app.config.get("CLOUDINARY_API_KEY"))
 print("CLOUDINARY_API_SECRET:", "OK" if app.config.get("CLOUDINARY_API_SECRET") else None)
 print("API KEY CLIMA:", app.config.get("OPENWEATHER_API_KEY"))
+print("GOOGLE_CLIENT_ID:", app.config.get("GOOGLE_CLIENT_ID"))
+print("GOOGLE_CLIENT_SECRET:", "OK" if app.config.get("GOOGLE_CLIENT_SECRET") else None)
 
 cloudinary.config(
     cloud_name=app.config.get("CLOUDINARY_CLOUD_NAME"),
@@ -755,7 +774,7 @@ CARPETA_FOTOS = 'static/uploads'
 if not os.path.exists(CARPETA_FOTOS):
     os.makedirs(CARPETA_FOTOS)
 app.config['CARPETA_FOTOS'] = CARPETA_FOTOS
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 
@@ -3470,7 +3489,21 @@ def registrar_movimiento_negocio():
 
     return redirect(url_for('emprendimientos'))    
 
+@app.route('/test_mail')
+def test_mail():
+    try:
+        msg = Message(
+            subject='Test Brevo - Oryon 360',
+            recipients=['viking108.81@gmail.com'],
+            body='Si recibes esto, Brevo está funcionando correctamente.'
+        )
+        mail.send(msg)
+        return '✅ Correo enviado correctamente'
+    except Exception as e:
+        return f'❌ Error: {e}'
 
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)                                                                                                                                                                                                                                                        
 
 
 # ══════════════════════════════════════════════════════════
