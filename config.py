@@ -24,13 +24,13 @@ class Config:
     GROQ_API_KEY = os.environ.get('GROQ_API_KEY')
     WOMPI_PUBLIC_KEY = os.environ.get('WOMPI_PUBLIC_KEY')
     WOMPI_PRIVATE_KEY = os.environ.get('WOMPI_PRIVATE_KEY')
-    WOMPI_INTEGRITY_KEY = os.environ.get('WOMPI_INTEGRITY_KEY')     
+    WOMPI_INTEGRITY_KEY = os.environ.get('WOMPI_INTEGRITY_KEY')
 
-    # Flask-Mail
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')
+    # Flask-Mail → Brevo
+    MAIL_SERVER         = os.getenv('MAIL_SERVER', 'smtp-relay.brevo.com')
+    MAIL_PORT           = int(os.getenv('MAIL_PORT', 587))
+    MAIL_USE_TLS        = os.getenv('MAIL_USE_TLS', 'True') == 'True'
+    MAIL_USE_SSL        = os.getenv('MAIL_USE_SSL', 'False') == 'True'
+    MAIL_USERNAME       = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD       = os.getenv('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
