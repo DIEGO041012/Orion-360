@@ -36,7 +36,6 @@ import asyncio
 import os
 import sys
 import requests
-import time
 from datetime import datetime, timezone
 
 load_dotenv()
@@ -45,24 +44,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'flaskfo
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 sqlite3.register_adapter(Decimal, float)
 print("KEY CARGADA:", os.getenv("GEMINI_API_KEY"))
-
-# ══════════════════════════════════════════════════════════
-# CACHE EN MEMORIA
-# ══════════════════════════════════════════════════════════
-_cache_contexto = {}
-_CACHE_TTL = 60  # 60 segundos de cache
-
-def _obtener_del_cache(clave):
-    """Obtener valor del cache si no ha expirado."""
-    if clave in _cache_contexto:
-        datos, tiempo = _cache_contexto[clave]
-        if time.time() - tiempo < _CACHE_TTL:
-            return datos
-    return None
-
-def _guardar_en_cache(clave, valor):
-    """Guardar valor en cache con timestamp."""
-    _cache_contexto[clave] = (valor, time.time())
 
 # ══════════════════════════════════════════════════════════
 # INICIALIZACIÓN DE LA APLICACIÓN
@@ -151,12 +132,6 @@ class DatabaseConnection:
         return getattr(self._conn, name)
     
 def construir_contexto_orion(usuario_id):
-    # Verificar cache primero
-    cache_key = f"contexto_{usuario_id}"
-    cached = _obtener_del_cache(cache_key)
-    if cached:
-        return cached
-    
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -276,7 +251,7 @@ def construir_contexto_orion(usuario_id):
             for a in agenda
         ]) or "Sin citas próximas."
 
-        resultado = f"""
+        return f"""
 DATOS REALES DEL USUARIO ACTUAL:
 
 FINANZAS:
@@ -296,11 +271,6 @@ PRÉSTAMOS POR COBRAR:
 AGENDA PRÓXIMA:
 {texto_agenda}
 """
-        # Guardar en cache antes de retornar
-        _guardar_en_cache(cache_key, resultado)
-        return resultado
-        # Guardar en cache antes de retornar
-        _guardar_en_cache(cache_key, resultado)
 
     finally:
         cursor.close()
@@ -783,17 +753,12 @@ app.jinja_env.filters['escapejs'] = escapejs_filter
 # CONTEXT PROCESSOR — optimizado: sin consulta SQL por request
 # ══════════════════════════════════════════════════════════
 
-from datetime import datetime  # asegúrate de tener esto arriba
-
 @app.context_processor
 def inject_user_data():
     if not current_user.is_authenticated:
-        return {
-            'now': datetime.now()  # 👈 IMPORTANTE incluso si no está logueado
-        }
+        return {}
 
     foto = getattr(current_user, 'foto', None)
-
     if not foto:
         foto = "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
     elif not (foto.startswith('http://') or foto.startswith('https://')):
@@ -804,8 +769,7 @@ def inject_user_data():
 
     return {
         'usuario': current_user.nombre_usuario,
-        'usuario_foto': foto,
-        'now': datetime.now()  # 👈 ESTA ES LA CLAVE
+        'usuario_foto': foto
     }
 
 
@@ -1237,65 +1201,54 @@ def panel_usuario():
     cursor = conn.cursor()
 
     try:
-        # ── 1 consulta: datos del usuario (sin subconsultas) ──
-        cursor.execute('SELECT foto, saldo_wallet FROM usuarios WHERE id = ?', (usuario_id,))
-        usuario_row = cursor.fetchone()
-        foto = usuario_row['foto'] if usuario_row else None
-        foto = foto or "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
-        saldo_wallet = float(usuario_row['saldo_wallet'] or 0) if usuario_row else 0
-
-        # ── 2 consultas separadas para estadísticas (más eficiente que subconsultas) ──
-        # Saldo neto, ingresos, gastos
+        # ── 1 consulta: resumen completo del usuario ──
         cursor.execute('''
-            SELECT 
-                COALESCE(SUM(CASE
-                    WHEN tipo IN ('ingreso','abono_a_recibir') THEN valor
+            SELECT
+                u.foto,
+                u.saldo_wallet,
+                (SELECT COALESCE(SUM(CASE
+                    WHEN tipo IN ('ingreso','abono_a_recibir')               THEN valor
                     WHEN tipo IN ('gasto','abono_deuda','prestamo_entregado') THEN -valor
-                    ELSE 0 END), 0) AS saldo_neto,
-                COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN valor ELSE 0 END), 0) AS total_ingresos,
-                COALESCE(SUM(CASE WHEN tipo = 'gasto' THEN valor ELSE 0 END), 0) AS total_gastos
-            FROM movimientos WHERE usuario_id = ?
+                    ELSE 0 END), 0)
+                 FROM movimientos WHERE usuario_id = u.id) AS saldo_neto,
+                (SELECT COALESCE(SUM(valor),0) FROM movimientos
+                 WHERE usuario_id = u.id AND tipo = 'ingreso') AS total_ingresos,
+                (SELECT COALESCE(SUM(valor),0) FROM movimientos
+                 WHERE usuario_id = u.id AND tipo = 'gasto') AS total_gastos,
+                (SELECT COUNT(*) FROM tareas
+                 WHERE usuario_id = u.id
+                   AND COALESCE(estado,'pendiente') != 'completada') AS total_tareas_pendientes,
+                (SELECT COUNT(*) FROM tareas
+                 WHERE usuario_id = u.id AND estado = 'completada') AS total_tareas_completadas,
+                (SELECT COUNT(*) FROM agenda
+                 WHERE usuario_id = u.id AND fecha >= CURRENT_DATE) AS total_eventos_proximos,
+                (SELECT COUNT(*) FROM deudas
+                 WHERE usuario_id = u.id AND estado = 'pendiente') AS total_deudas_pendientes,
+                (SELECT COALESCE(SUM(saldo),0) FROM deudas
+                 WHERE usuario_id = u.id AND estado = 'pendiente') AS saldo_deudas_pendientes,
+                (SELECT COUNT(*) FROM prestamos
+                 WHERE usuario_id = u.id AND estado = 'pendiente') AS total_prestamos,
+                (SELECT COALESCE(SUM(saldo),0) FROM prestamos
+                 WHERE usuario_id = u.id AND estado = 'pendiente') AS saldo_prestamos
+            FROM usuarios u WHERE u.id = ?
         ''', (usuario_id,))
-        finances = cursor.fetchone()
-        saldo_neto = float(finances['saldo_neto'] or 0)
-        total_ingresos = float(finances['total_ingresos'] or 0)
-        total_gastos = float(finances['total_gastos'] or 0)
+        resumen = cursor.fetchone()
 
-        # Tareas
-        cursor.execute('''
-            SELECT 
-                SUM(CASE WHEN COALESCE(estado,'pendiente') != 'completada' THEN 1 ELSE 0 END) AS pendientes,
-                SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END) AS completadas
-            FROM tareas WHERE usuario_id = ?
-        ''', (usuario_id,))
-        tareas = cursor.fetchone()
-        total_tareas_pendientes = int(tareas['pendientes'] or 0)
-        total_tareas_completadas = int(tareas['completadas'] or 0)
-
-        # Eventos próximos
-        cursor.execute('SELECT COUNT(*) FROM agenda WHERE usuario_id = ? AND fecha >= CURRENT_DATE', (usuario_id,))
-        total_eventos_proximos = int(cursor.fetchone()[0] or 0)
-
-        # Deudas pendientes
-        cursor.execute('''
-            SELECT COUNT(*), COALESCE(SUM(saldo),0) FROM deudas 
-            WHERE usuario_id = ? AND estado = 'pendiente'
-        ''', (usuario_id,))
-        deudas = cursor.fetchone()
+        foto           = resumen['foto'] or "https://res.cloudinary.com/di9wdbb1z/image/upload/v1750640818/default_xm9gvv.jpg"
+        saldo_wallet   = float(resumen['saldo_wallet'] or 0)
+        saldo_neto     = float(resumen['saldo_neto'] or 0)
+        total_ingresos = float(resumen['total_ingresos'] or 0)
+        total_gastos   = float(resumen['total_gastos'] or 0)
+        total_tareas_pendientes  = int(resumen['total_tareas_pendientes'] or 0)
+        total_tareas_completadas = int(resumen['total_tareas_completadas'] or 0)
+        total_eventos_proximos   = int(resumen['total_eventos_proximos'] or 0)
         deudas_pendientes = {
-            'total_deudas_pendientes': int(deudas[0] or 0),
-            'saldo_deudas_pendientes': float(deudas[1] or 0),
+            'total_deudas_pendientes': int(resumen['total_deudas_pendientes'] or 0),
+            'saldo_deudas_pendientes': float(resumen['saldo_deudas_pendientes'] or 0),
         }
-
-        # Préstamos pendientes
-        cursor.execute('''
-            SELECT COUNT(*), COALESCE(SUM(saldo),0) FROM prestamos 
-            WHERE usuario_id = ? AND estado = 'pendiente'
-        ''', (usuario_id,))
-        prestamos = cursor.fetchone()
         prestamos_resumen = {
-            'total_prestamos': int(prestamos[0] or 0),
-            'saldo_prestamos': float(prestamos[1] or 0),
+            'total_prestamos': int(resumen['total_prestamos'] or 0),
+            'saldo_prestamos': float(resumen['saldo_prestamos'] or 0),
         }
 
         # ── 2 consultas: listas cortas ──
@@ -1320,18 +1273,14 @@ def panel_usuario():
         ''', (usuario_id,))
         proximos_eventos = cursor.fetchall()
 
-        # ── 3 consulta: datos para gráficas (SOLO últimos 6 meses) ──
-        # Calcular fecha límite: hace 6 meses
-        from datetime import datetime
-        fecha_limite = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
-        
+        # ── 3 consulta: datos para gráficas ──
         cursor.execute('''
             SELECT m.fecha, m.valor, m.tipo, c.nombre AS categoria_nombre
             FROM movimientos m
             LEFT JOIN categorias c ON m.categoria_id = c.id
-            WHERE m.usuario_id = ? AND m.fecha >= ?
+            WHERE m.usuario_id = ?
             ORDER BY m.fecha ASC, m.id ASC
-        ''', (usuario_id, fecha_limite))
+        ''', (usuario_id,))
         movimientos_chart = cursor.fetchall()
 
         cursor.execute('''
@@ -3315,56 +3264,5 @@ def guardar_factura():
 # PUNTO DE ENTRADA
 # ══════════════════════════════════════════════════════════
 
-def crear_indices():
-    """Crear índices para optimizar consultas frecuentes."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    indices = [
-        ("idx_movimientos_usuario", "movimientos", "usuario_id, fecha"),
-        ("idx_movimientos_tipo", "movimientos", "usuario_id, tipo"),
-        ("idx_tareas_usuario", "tareas", "usuario_id, estado"),
-        ("idx_tareas_fecha", "tareas", "usuario_id, fecha_limite"),
-        ("idx_agenda_usuario", "agenda", "usuario_id, fecha"),
-        ("idx_deudas_usuario", "deudas", "usuario_id, estado"),
-        ("idx_prestamos_usuario", "prestamos", "usuario_id, estado"),
-        ("idx_listas_usuario", "listas", "usuario_id"),
-    ]
-    
-    try:
-        for nombre, tabla, columnas in indices:
-            try:
-                if conn.is_postgres:
-                    cursor.execute(f"""
-                        CREATE INDEX IF NOT EXISTS {nombre}
-                        ON {tabla} ({columnas})
-                    """)
-                else:
-                    # SQLite no soporta IF NOT EXISTS en CREATE INDEX
-                    # Verificar si existe primero
-                    cursor.execute(f"""
-                        SELECT name FROM sqlite_master 
-                        WHERE type='index' AND name='{nombre}'
-                    """)
-                    if not cursor.fetchone():
-                        cursor.execute(f"""
-                            CREATE INDEX {nombre}
-                            ON {tabla} ({columnas})
-                        """)
-                print(f"✅ Índice {nombre} creado/verificado")
-            except Exception as e:
-                print(f"⚠️ Índice {nombre}: {e}")
-        conn.commit()
-        print("✅ Todos los índices creados correctamente")
-    except Exception as e:
-        print(f"Error al crear índices: {e}")
-        conn.rollback()
-    finally:
-        cursor.close()
-        conn.close()
-
-
 if __name__ == '__main__':
-    init_db()
-    crear_indices()  # Optimización: crear índices para mejorar rendimiento
     app.run(debug=True, port=5000)

@@ -404,16 +404,7 @@
 
     <div class="panel-welcome">
         <div class="panel-welcome-left">
-            {% set hora = now.hour %}
-            {% set hora = now.hour %}
-
-            {% if hora >= 5 and hora < 12 %}
-                <h1>Buenos días, {{ current_user.nombre_usuario }} ☀️</h1>
-            {% elif hora >= 12 and hora < 18 %}
-                <h1>Buenas tardes, {{ current_user.nombre_usuario }} 🌤️</h1>
-            {% else %}
-                <h1>Buenas noches, {{ current_user.nombre_usuario }} 🌙</h1>
-            {% endif %}
+            <h1>Buenos días, {{ current_user.nombre_usuario }} 👋</h1>
             <p>Aquí tienes un resumen más completo de tu actividad, finanzas y organización.</p>
         </div>
         <div class="panel-welcome-actions">
