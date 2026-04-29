@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block titulo %}Mi Negocio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_ahorro-negocio.css') }}">
+{% endblock %}
+{% block contenido %}
+
+<div class="page negocios-page">
+
+  <div class="page-header">
+    <div>
+      <h1><i class="fa-solid fa-briefcase"></i> Mi Negocio</h1>
+      <p class="page-subtitle">Controla ingresos y gastos de tus emprendimientos</p>
+    </div>
+    <button class="btn-primary" onclick="abrirModal('modal-crear-negocio')">
+      <i class="fa-solid fa-plus"></i> Nuevo negocio
+    </button>
+  </div>
+
+  <!-- Mensajes flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Lista de negocios -->
+  {% if negocios %}
+    <div class="negocios-grid">
+      {% for n in negocios %}
+        {% set utilidad = n.ingresos - n.gastos %}
+        <div class="negocio-card">
+          <div class="negocio-header">
+            <div class="negocio-icon">
+              <i class="fa-solid fa-store"></i>
+            </div>
+            <div>
+              <h3>{{ n.nombre }}</h3>
+              <span class="negocio-estado {% if utilidad >= 0 %}positivo{% else %}negativo{% endif %}">
+                {% if utilidad >= 0 %}En utilidad{% else %}En pérdida{% endif %}
+              </span>
+            </div>
+          </div>
+
+          <div class="negocio-stats">
+            <div class="stat-item ingreso">
+              <i class="fa-solid fa-arrow-trend-up"></i>
+              <div>
+                <span class="stat-label">Ingresos</span>
+                <span class="stat-valor positivo">${{ "{:,.0f}".format(n.ingresos) }}</span>
+              </div>
+            </div>
+            <div class="stat-item gasto">
+              <i class="fa-solid fa-arrow-trend-down"></i>
+              <div>
+                <span class="stat-label">Gastos</span>
+                <span class="stat-valor negativo">${{ "{:,.0f}".format(n.gastos) }}</span>
+              </div>
+            </div>
+            <div class="stat-item utilidad">
+              <i class="fa-solid fa-scale-balanced"></i>
+              <div>
+                <span class="stat-label">Utilidad</span>
+                <span class="stat-valor {% if utilidad >= 0 %}positivo{% else %}negativo{% endif %}">
+                  ${{ "{:,.0f}".format(utilidad) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <form action="{{ url_for('registrar_movimiento_negocio') }}" method="POST" class="negocio-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="negocio_id" value="{{ n.id }}">
+            <div class="negocio-form-row">
+              <select name="tipo" class="input-dark" required>
+                <option value="ingreso">📈 Ingreso</option>
+                <option value="gasto">📉 Gasto</option>
+              </select>
+              <input type="number" name="monto" placeholder="Monto" min="1" step="any" required class="input-dark">
+              <button type="submit" class="btn-secondary">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-briefcase"></i>
+      <p>Aún no tienes negocios registrados.</p>
+      <button class="btn-primary" onclick="abrirModal('modal-crear-negocio')">
+        Registrar mi primer negocio
+      </button>
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal: Crear negocio -->
+<div class="modal-overlay" id="modal-crear-negocio" onclick="cerrarModalOverlay(event, 'modal-crear-negocio')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-briefcase"></i> Nuevo negocio</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-crear-negocio')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form action="{{ url_for('crear_negocio') }}" method="POST" class="modal-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Nombre del negocio</label>
+        <input type="text" name="nombre" placeholder="Ej: Tienda ropa, Freelance..." required class="input-dark">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="cerrarModal('modal-crear-negocio')">Cancelar</button>
+        <button type="submit" class="btn-primary">Crear negocio</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function abrirModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+function cerrarModalOverlay(e, id) {
+  if (e.target.classList.contains('modal-overlay')) cerrarModal(id);
+}
+</script>
+
+{% endblock %}

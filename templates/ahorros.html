@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block titulo %}Ahorros{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gestion_ahorro-negocio.css') }}">
+{% endblock %}
+
+{% block contenido %}
+
+<div class="page ahorros-page">
+
+  <div class="page-header">
+    <div>
+      <h1><i class="fa-solid fa-piggy-bank"></i> Ahorros</h1>
+      <p class="page-subtitle">Registra y sigue el progreso de tus metas de ahorro</p>
+    </div>
+    <button class="btn-primary" onclick="abrirModal('modal-crear-ahorro')">
+      <i class="fa-solid fa-plus"></i> Nuevo ahorro
+    </button>
+  </div>
+
+  <!-- Resumen -->
+<div class="ahorros-resumen">
+  <div class="resumen-card">
+    <span class="resumen-label">Total ahorrado</span>
+    <span class="resumen-valor positivo">
+      ${{ "{:,.0f}".format((ahorros | sum(attribute='ahorrado')) | round(0) | int) if ahorros else 0 }}
+    </span>
+  </div>
+  <div class="resumen-card">
+    <span class="resumen-label">Meta total</span>
+    <span class="resumen-valor">
+      ${{ "{:,.0f}".format((ahorros | sum(attribute='objetivo')) | round(0) | int) if ahorros else 0 }}
+    </span>
+  </div>
+  <div class="resumen-card">
+    <span class="resumen-label">Metas activas</span>
+    <span class="resumen-valor">{{ ahorros | length }}</span>
+  </div>
+</div>
+
+  <!-- Mensajes flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Lista de ahorros -->
+  {% if ahorros %}
+    <div class="ahorros-grid">
+      {% for a in ahorros %}
+        {% set porcentaje = ((a.ahorrado / a.objetivo) * 100) | round(1) if a.objetivo > 0 else 0 %}
+        {% set porcentaje_clamp = [porcentaje, 100] | min %}
+        <div class="ahorro-card">
+          <div class="ahorro-card-header">
+            <div class="ahorro-icon">
+              <i class="fa-solid fa-piggy-bank"></i>
+            </div>
+            <div class="ahorro-info">
+              <h3>{{ a.nombre }}</h3>
+              <span class="ahorro-porcentaje {% if porcentaje >= 100 %}completado{% elif porcentaje >= 60 %}bien{% else %}inicio{% endif %}">
+                {{ porcentaje_clamp }}% completado
+              </span>
+            </div>
+          </div>
+
+          <div class="ahorro-montos">
+            <div>
+              <span class="monto-label">Ahorrado</span>
+              <span class="monto-valor positivo">${{ "{:,.0f}".format(a.ahorrado) }}</span>
+            </div>
+            <div>
+              <span class="monto-label">Meta</span>
+              <span class="monto-valor">${{ "{:,.0f}".format(a.objetivo) }}</span>
+            </div>
+            <div>
+              <span class="monto-label">Falta</span>
+              <span class="monto-valor negativo">${{ "{:,.0f}".format([a.objetivo - a.ahorrado, 0] | max) }}</span>
+            </div>
+          </div>
+
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill {% if porcentaje >= 100 %}completo{% endif %}"
+                   style="width: {{ porcentaje_clamp }}%"></div>
+            </div>
+            <span class="progress-label">{{ porcentaje_clamp }}%</span>
+          </div>
+
+          <form action="{{ url_for('abonar_ahorro') }}" method="POST" class="ahorro-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="ahorro_id" value="{{ a.id }}">
+            <input type="number" name="monto" placeholder="Monto a abonar" min="1" step="any" required class="input-dark">
+            <button type="submit" class="btn-secondary">
+              <i class="fa-solid fa-plus"></i> Abonar
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-piggy-bank"></i>
+      <p>Aún no tienes metas de ahorro.</p>
+      <button class="btn-primary" onclick="abrirModal('modal-crear-ahorro')">
+        Crear mi primera meta
+      </button>
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal: Crear ahorro -->
+<div class="modal-overlay" id="modal-crear-ahorro" onclick="cerrarModalOverlay(event, 'modal-crear-ahorro')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2><i class="fa-solid fa-piggy-bank"></i> Nueva meta de ahorro</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-crear-ahorro')">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form action="{{ url_for('crear_ahorro') }}" method="POST" class="modal-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Nombre de la meta</label>
+        <input type="text" name="nombre" placeholder="Ej: Vacaciones, Computador..." required class="input-dark">
+      </div>
+      <div class="form-group">
+        <label>Monto objetivo</label>
+        <input type="number" name="objetivo" placeholder="Ej: 5000000" min="1" step="any" required class="input-dark">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="cerrarModal('modal-crear-ahorro')">Cancelar</button>
+        <button type="submit" class="btn-primary">Crear meta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function abrirModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+function cerrarModalOverlay(e, id) {
+  if (e.target.classList.contains('modal-overlay')) cerrarModal(id);
+}
+</script>
+
+{% endblock %}
