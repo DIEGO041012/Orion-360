@@ -376,6 +376,119 @@
     font-size: 13px;
 }
 
+/* ══════════════════════════════════════════════
+   ORION — Asistente de voz flotante
+══════════════════════════════════════════════ */
+.orion-voice-fab {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.orion-voice-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    position: relative;
+    transition: transform 0.2s;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.orion-voice-btn:hover { transform: scale(1.06); }
+
+.orion-voice-btn.reposo {
+    background: var(--accent);
+    color: var(--accent-text);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    animation: orion-idle-pulse 3s ease-in-out infinite;
+}
+
+.orion-voice-btn.escuchando {
+    background: #ef4444;
+    color: #fff;
+    animation: orion-listen-wave 1s ease-out infinite;
+}
+
+.orion-voice-btn.pensando {
+    background: #f59e0b;
+    color: #fff;
+    animation: orion-think-pulse 1.4s ease-in-out infinite;
+}
+
+.orion-voice-btn.hablando {
+    background: #10b981;
+    color: #fff;
+    animation: orion-speak-wave 0.7s ease-out infinite;
+}
+
+@keyframes orion-idle-pulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 0 rgba(99,102,241,0.25); }
+    50%       { box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 12px rgba(99,102,241,0); }
+}
+
+@keyframes orion-listen-wave {
+    0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.5); }
+    70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);  }
+    100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
+}
+
+@keyframes orion-think-pulse {
+    0%   { box-shadow: 0 0 0 4px rgba(245,158,11,0.4),  0 0 0 10px rgba(245,158,11,0.15); }
+    50%  { box-shadow: 0 0 0 8px rgba(245,158,11,0.25), 0 0 0 18px rgba(245,158,11,0.05); }
+    100% { box-shadow: 0 0 0 4px rgba(245,158,11,0.4),  0 0 0 10px rgba(245,158,11,0.15); }
+}
+
+@keyframes orion-speak-wave {
+    0%   { box-shadow: 0 0 0 0   rgba(16,185,129,0.55); }
+    70%  { box-shadow: 0 0 0 20px rgba(16,185,129,0);   }
+    100% { box-shadow: 0 0 0 0   rgba(16,185,129,0);    }
+}
+
+.orion-status-label {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-align: center;
+    user-select: none;
+}
+
+.orion-bars {
+    display: none;
+    align-items: flex-end;
+    gap: 3px;
+    height: 20px;
+}
+.orion-bars.visible { display: flex; }
+.orion-bars span {
+    width: 3px;
+    border-radius: 2px;
+    background: #10b981;
+    animation: orion-bar-bounce 0.8s ease-in-out infinite;
+}
+.orion-bars span:nth-child(1) { height: 8px;  animation-delay: 0s;    }
+.orion-bars span:nth-child(2) { height: 16px; animation-delay: 0.1s;  }
+.orion-bars span:nth-child(3) { height: 12px; animation-delay: 0.2s;  }
+.orion-bars span:nth-child(4) { height: 20px; animation-delay: 0.3s;  }
+.orion-bars span:nth-child(5) { height: 10px; animation-delay: 0.15s; }
+
+@keyframes orion-bar-bounce {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+    50%       { transform: scaleY(1);   opacity: 1;   }
+}
+
 @media (max-width: 1200px) {
     .summary-grid { grid-template-columns: repeat(4, 1fr); }
     .panel-bottom-3,
@@ -395,6 +508,8 @@
 
 @media (max-width: 480px) {
     .summary-grid { grid-template-columns: 1fr; }
+    .orion-voice-fab { bottom: 20px; right: 20px; }
+    .orion-voice-btn { width: 58px; height: 58px; font-size: 22px; }
 }
 </style>
 {% endblock %}
@@ -701,6 +816,20 @@
             </div>
         </div>
     </div>
+
+</div><!-- fin .panel-page -->
+
+<!-- ══════════════════════════════════════════════
+     ORION — Botón de voz flotante
+══════════════════════════════════════════════ -->
+<div class="orion-voice-fab" id="orionVoiceFab">
+    <div class="orion-bars" id="orionBars">
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="orion-status-label" id="orionStatusLabel">Habla con ORION</div>
+    <button class="orion-voice-btn reposo" id="orionVoiceBtn" title="Hablar con ORION">
+        <i class="fa-solid fa-robot" id="orionBtnIcon"></i>
+    </button>
 </div>
 
 <script>
@@ -711,37 +840,20 @@ new Chart(document.getElementById('incomeExpenseChart'), {
     data: {
         labels: chartData.incomeExpense.labels,
         datasets: [
-            {
-                label: 'Ingresos',
-                data: chartData.incomeExpense.ingresos,
-                borderWidth: 1
-            },
-            {
-                label: 'Gastos',
-                data: chartData.incomeExpense.gastos,
-                borderWidth: 1
-            }
+            { label: 'Ingresos', data: chartData.incomeExpense.ingresos, borderWidth: 1 },
+            { label: 'Gastos',   data: chartData.incomeExpense.gastos,   borderWidth: 1 }
         ]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
 });
 
 new Chart(document.getElementById('categoryExpenseChart'), {
     type: 'doughnut',
     data: {
         labels: chartData.categoryExpense.labels,
-        datasets: [{
-            data: chartData.categoryExpense.values,
-            borderWidth: 1
-        }]
+        datasets: [{ data: chartData.categoryExpense.values, borderWidth: 1 }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
 });
 
 new Chart(document.getElementById('balanceTrendChart'), {
@@ -751,46 +863,143 @@ new Chart(document.getElementById('balanceTrendChart'), {
         datasets: [{
             label: 'Saldo',
             data: chartData.balanceTrend.values,
-            tension: 0.35,
-            fill: false,
-            borderWidth: 2
+            tension: 0.35, fill: false, borderWidth: 2
         }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
 });
 
 new Chart(document.getElementById('taskStatusChart'), {
     type: 'doughnut',
     data: {
         labels: chartData.taskStatus.labels,
-        datasets: [{
-            data: chartData.taskStatus.values,
-            borderWidth: 1
-        }]
+        datasets: [{ data: chartData.taskStatus.values, borderWidth: 1 }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
 });
 
 new Chart(document.getElementById('debtLoanChart'), {
     type: 'bar',
     data: {
         labels: chartData.debtLoan.labels,
-        datasets: [{
-            label: 'Monto',
-            data: chartData.debtLoan.values,
-            borderWidth: 1
-        }]
+        datasets: [{ label: 'Monto', data: chartData.debtLoan.values, borderWidth: 1 }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false
-    }
+    options: { responsive: true, maintainAspectRatio: false }
 });
+
+/* ── ORION voz ───────────────────────────────────────── */
+(function () {
+    const csrf  = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const btn   = document.getElementById('orionVoiceBtn');
+    const icon  = document.getElementById('orionBtnIcon');
+    const label = document.getElementById('orionStatusLabel');
+    const bars  = document.getElementById('orionBars');
+
+    function setEstado(estado) {
+        btn.className = `orion-voice-btn ${estado}`;
+        const cfg = {
+            reposo:     { ico: 'fa-robot',               txt: 'Habla con ORION', bars: false },
+            escuchando: { ico: 'fa-microphone',           txt: 'Escuchando...',   bars: false },
+            pensando:   { ico: 'fa-circle-notch fa-spin', txt: 'Pensando...',     bars: false },
+            hablando:   { ico: 'fa-volume-high',          txt: 'ORION responde',  bars: true  },
+        };
+        const c = cfg[estado] || cfg.reposo;
+        icon.className    = `fa-solid ${c.ico}`;
+        label.textContent = c.txt;
+        bars.classList.toggle('visible', c.bars);
+    }
+
+    function hablar(texto) {
+        if (!window.speechSynthesis) { setEstado('reposo'); return; }
+
+        const limpio = texto
+            .replace(/\*\*/g, '').replace(/\*/g, '')
+            .replace(/#+ /g, '').replace(/\n/g, '. ').trim();
+
+        window.speechSynthesis.cancel();
+
+        const utt    = new SpeechSynthesisUtterance(limpio);
+        utt.lang     = 'es-CO';
+        utt.rate     = 1.05;
+        utt.pitch    = 1;
+        utt.volume   = 1;
+
+        const voces  = window.speechSynthesis.getVoices();
+        const vozES  = voces.find(v => v.lang.startsWith('es')) || null;
+        if (vozES) utt.voice = vozES;
+
+        utt.onstart = () => setEstado('hablando');
+        utt.onend   = () => setEstado('reposo');
+        utt.onerror = () => setEstado('reposo');
+
+        window.speechSynthesis.speak(utt);
+    }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SR) {
+        label.textContent = 'Voz no disponible';
+        btn.style.opacity = '0.4';
+        btn.style.cursor  = 'not-allowed';
+        return;
+    }
+
+    const rec          = new SR();
+    rec.lang           = 'es-CO';
+    rec.continuous     = false;
+    rec.interimResults = false;
+    let activo         = false;
+
+    rec.onstart = () => setEstado('escuchando');
+
+    rec.onresult = async (e) => {
+        const texto = e.results[0][0].transcript.trim();
+        if (!texto) { setEstado('reposo'); return; }
+
+        setEstado('pensando');
+
+        try {
+            const fd = new FormData();
+            fd.append('consulta', texto);
+
+            const resp = await fetch('/consultar', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-CSRFToken': csrf },
+                credentials: 'same-origin'
+            });
+
+            if (!resp.ok) throw new Error('HTTP error');
+
+            const data = await resp.json();
+            hablar(data.mensaje || 'No obtuve respuesta.');
+
+        } catch {
+            hablar('Hubo un error al conectar con ORION. Intenta de nuevo.');
+        }
+    };
+
+    rec.onerror = () => { activo = false; setEstado('reposo'); };
+    rec.onend   = () => {
+        activo = false;
+        if (btn.classList.contains('escuchando')) setEstado('reposo');
+    };
+
+    btn.addEventListener('click', () => {
+        if (btn.classList.contains('hablando')) {
+            window.speechSynthesis?.cancel();
+            setEstado('reposo');
+            return;
+        }
+        if (btn.classList.contains('pensando')) return;
+        if (!activo) { activo = true; rec.start(); }
+    });
+
+    if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+})();
 </script>
+
 {% endblock %}
