@@ -219,18 +219,14 @@
 
 .widget-link:hover { color: var(--text-primary); }
 
-.widget-body {
-    padding: 6px 0;
-}
+.widget-body { padding: 6px 0; }
 
 .chart-body {
     padding: 16px 18px 18px;
     height: 320px;
 }
 
-.chart-body.small {
-    height: 260px;
-}
+.chart-body.small { height: 260px; }
 
 .mov-table {
     width: 100%;
@@ -252,11 +248,7 @@
     color: var(--text-primary);
 }
 
-.mov-desc {
-    flex: 1;
-    color: var(--text-secondary);
-    font-size: 13.5px;
-}
+.mov-desc { flex: 1; color: var(--text-secondary); font-size: 13.5px; }
 
 .mov-val {
     font-family: var(--font-mono);
@@ -278,19 +270,12 @@
     white-space: nowrap;
 }
 
-.badge-green  { background: var(--green-dim);  color: var(--green); }
-.badge-red    { background: var(--red-dim);    color: var(--red); }
+.badge-green { background: var(--green-dim); color: var(--green); }
+.badge-red   { background: var(--red-dim);   color: var(--red); }
 
-.task-list,
-.event-list,
-.quick-list {
-    display: flex;
-    flex-direction: column;
-}
+.task-list, .event-list, .quick-list { display: flex; flex-direction: column; }
 
-.task-item,
-.event-item,
-.quick-item {
+.task-item, .event-item, .quick-item {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -298,9 +283,7 @@
     border-bottom: 1px solid var(--border-subtle);
 }
 
-.quick-item {
-    justify-content: space-between;
-}
+.quick-item { justify-content: space-between; }
 
 .task-item:last-child,
 .event-item:last-child,
@@ -323,8 +306,7 @@
     white-space: nowrap;
 }
 
-.task-due,
-.event-meta {
+.task-due, .event-meta {
     font-size: 11.5px;
     color: var(--text-muted);
     font-family: var(--font-mono);
@@ -344,10 +326,7 @@
     flex-shrink: 0;
 }
 
-.event-main {
-    flex: 1;
-    min-width: 0;
-}
+.event-main { flex: 1; min-width: 0; }
 
 .event-title {
     font-size: 13.5px;
@@ -357,10 +336,7 @@
     text-overflow: ellipsis;
 }
 
-.quick-label {
-    font-size: 13px;
-    color: var(--text-secondary);
-}
+.quick-label { font-size: 13px; color: var(--text-secondary); }
 
 .quick-value {
     font-size: 13px;
@@ -434,26 +410,25 @@
 }
 
 @keyframes orion-idle-pulse {
-    0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 0 rgba(99,102,241,0.25); }
+    0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 0    rgba(99,102,241,0.25); }
     50%       { box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 12px rgba(99,102,241,0); }
 }
 
 @keyframes orion-listen-wave {
-    0%   { box-shadow: 0 0 0 0   rgba(239,68,68,0.5); }
-    70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0);  }
-    100% { box-shadow: 0 0 0 0   rgba(239,68,68,0);   }
+    0%   { box-shadow: 0 0 0 0    rgba(239,68,68,0.5); }
+    70%  { box-shadow: 0 0 0 18px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0    rgba(239,68,68,0); }
 }
 
 @keyframes orion-think-pulse {
-    0%   { box-shadow: 0 0 0 4px rgba(245,158,11,0.4),  0 0 0 10px rgba(245,158,11,0.15); }
-    50%  { box-shadow: 0 0 0 8px rgba(245,158,11,0.25), 0 0 0 18px rgba(245,158,11,0.05); }
-    100% { box-shadow: 0 0 0 4px rgba(245,158,11,0.4),  0 0 0 10px rgba(245,158,11,0.15); }
+    0%,100% { box-shadow: 0 0 0 4px rgba(245,158,11,0.4),  0 0 0 10px rgba(245,158,11,0.15); }
+    50%     { box-shadow: 0 0 0 8px rgba(245,158,11,0.25), 0 0 0 18px rgba(245,158,11,0.05); }
 }
 
 @keyframes orion-speak-wave {
-    0%   { box-shadow: 0 0 0 0   rgba(16,185,129,0.55); }
-    70%  { box-shadow: 0 0 0 20px rgba(16,185,129,0);   }
-    100% { box-shadow: 0 0 0 0   rgba(16,185,129,0);    }
+    0%   { box-shadow: 0 0 0 0    rgba(16,185,129,0.55); }
+    70%  { box-shadow: 0 0 0 20px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0    rgba(16,185,129,0); }
 }
 
 .orion-status-label {
@@ -462,52 +437,50 @@
     color: var(--text-muted);
     letter-spacing: 0.04em;
     text-align: center;
+    max-width: 160px;
     user-select: none;
 }
 
+/* Barras: rojas al escuchar, verdes al hablar */
 .orion-bars {
     display: none;
     align-items: flex-end;
     gap: 3px;
-    height: 20px;
+    height: 22px;
 }
 .orion-bars.visible { display: flex; }
 .orion-bars span {
     width: 3px;
     border-radius: 2px;
-    background: #10b981;
     animation: orion-bar-bounce 0.8s ease-in-out infinite;
 }
+.orion-bars.escuchando span { background: #ef4444; }
+.orion-bars.hablando   span { background: #10b981; }
 .orion-bars span:nth-child(1) { height: 8px;  animation-delay: 0s;    }
 .orion-bars span:nth-child(2) { height: 16px; animation-delay: 0.1s;  }
-.orion-bars span:nth-child(3) { height: 12px; animation-delay: 0.2s;  }
-.orion-bars span:nth-child(4) { height: 20px; animation-delay: 0.3s;  }
+.orion-bars span:nth-child(3) { height: 22px; animation-delay: 0.2s;  }
+.orion-bars span:nth-child(4) { height: 14px; animation-delay: 0.3s;  }
 .orion-bars span:nth-child(5) { height: 10px; animation-delay: 0.15s; }
 
 @keyframes orion-bar-bounce {
-    0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
-    50%       { transform: scaleY(1);   opacity: 1;   }
+    0%, 100% { transform: scaleY(0.35); opacity: 0.55; }
+    50%       { transform: scaleY(1);   opacity: 1; }
 }
 
 @media (max-width: 1200px) {
     .summary-grid { grid-template-columns: repeat(4, 1fr); }
-    .panel-bottom-3,
-    .chart-grid-bottom,
-    .chart-grid-top { grid-template-columns: 1fr; }
+    .panel-bottom-3, .chart-grid-bottom, .chart-grid-top { grid-template-columns: 1fr; }
 }
-
 @media (max-width: 1024px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
     .panel-bottom { grid-template-columns: 1fr; }
 }
-
 @media (max-width: 768px) {
-    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .summary-grid  { grid-template-columns: 1fr 1fr; }
     .panel-welcome { flex-direction: column; align-items: flex-start; }
 }
-
 @media (max-width: 480px) {
-    .summary-grid { grid-template-columns: 1fr; }
+    .summary-grid    { grid-template-columns: 1fr; }
     .orion-voice-fab { bottom: 20px; right: 20px; }
     .orion-voice-btn { width: 58px; height: 58px; font-size: 22px; }
 }
@@ -545,7 +518,9 @@
                 <span class="summary-icon"><i class="fa-solid fa-arrow-trend-up"></i></span>
             </div>
             <div class="summary-value">${{ "%.2f"|format(total_ingresos) }}</div>
-            <div class="summary-sub"><span class="dot" style="background:var(--green)"></span> Histórico</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:var(--green)"></span> Histórico
+            </div>
         </div>
 
         <div class="summary-card expense">
@@ -554,7 +529,9 @@
                 <span class="summary-icon"><i class="fa-solid fa-arrow-trend-down"></i></span>
             </div>
             <div class="summary-value">${{ "%.2f"|format(total_gastos) }}</div>
-            <div class="summary-sub"><span class="dot" style="background:var(--red)"></span> Histórico</div>
+            <div class="summary-sub">
+                <span class="dot" style="background:var(--red)"></span> Histórico
+            </div>
         </div>
 
         <div class="summary-card debt">
@@ -600,8 +577,7 @@
             </div>
             <div class="summary-value">{{ total_eventos_proximos }}</div>
             <div class="summary-sub">
-                <span class="dot" style="background:#ec4899"></span>
-                Próximas fechas
+                <span class="dot" style="background:#ec4899"></span> Próximas fechas
             </div>
         </div>
 
@@ -612,8 +588,7 @@
             </div>
             <div class="summary-value">${{ "%.2f"|format(saldo_neto) }}</div>
             <div class="summary-sub">
-                <span class="dot" style="background:#14b8a6"></span>
-                Saldo real disponible
+                <span class="dot" style="background:#14b8a6"></span> Saldo real disponible
             </div>
         </div>
 
@@ -624,8 +599,7 @@
             </div>
             <div class="summary-value">${{ "%.2f"|format(saldo_wallet or 0) }}</div>
             <div class="summary-sub">
-                <span class="dot" style="background:#f59e0b"></span>
-                Disponible
+                <span class="dot" style="background:#f59e0b"></span> Disponible
             </div>
         </div>
     </div>
@@ -639,7 +613,6 @@
                 <canvas id="incomeExpenseChart"></canvas>
             </div>
         </div>
-
         <div class="widget">
             <div class="widget-header">
                 <span class="widget-title">Gastos por categoría</span>
@@ -659,7 +632,6 @@
                 <canvas id="balanceTrendChart"></canvas>
             </div>
         </div>
-
         <div class="widget">
             <div class="widget-header">
                 <span class="widget-title">Estado de tareas</span>
@@ -668,7 +640,6 @@
                 <canvas id="taskStatusChart"></canvas>
             </div>
         </div>
-
         <div class="widget">
             <div class="widget-header">
                 <span class="widget-title">Deudas vs préstamos</span>
@@ -833,6 +804,9 @@
 </div>
 
 <script>
+/* ══════════════════════════════════════════════
+   GRÁFICAS
+══════════════════════════════════════════════ */
 const chartData = {{ chart_data | tojson }};
 
 new Chart(document.getElementById('incomeExpenseChart'), {
@@ -887,118 +861,228 @@ new Chart(document.getElementById('debtLoanChart'), {
     options: { responsive: true, maintainAspectRatio: false }
 });
 
-/* ── ORION voz ───────────────────────────────────────── */
+/* ══════════════════════════════════════════════
+   ORION — Push-to-Talk + voz de calidad
+   · 1er toque  → empieza a escuchar
+   · 2do toque  → para y envía a /consultar
+   · Toque hablando → interrumpe la voz
+══════════════════════════════════════════════ */
 (function () {
+    'use strict';
+
     const csrf  = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const btn   = document.getElementById('orionVoiceBtn');
     const icon  = document.getElementById('orionBtnIcon');
     const label = document.getElementById('orionStatusLabel');
     const bars  = document.getElementById('orionBars');
 
-    function setEstado(estado) {
-        btn.className = `orion-voice-btn ${estado}`;
-        const cfg = {
-            reposo:     { ico: 'fa-robot',               txt: 'Habla con ORION', bars: false },
-            escuchando: { ico: 'fa-microphone',           txt: 'Escuchando...',   bars: false },
-            pensando:   { ico: 'fa-circle-notch fa-spin', txt: 'Pensando...',     bars: false },
-            hablando:   { ico: 'fa-volume-high',          txt: 'ORION responde',  bars: true  },
-        };
-        const c = cfg[estado] || cfg.reposo;
+    let rec = null;  // instancia SpeechRecognition actual
+
+    /* ── Tabla de estados ─────────────────────────────── */
+    const EST = {
+        reposo:     { ico: 'fa-robot',               txt: 'Habla con ORION',                     bars: false, color: ''           },
+        escuchando: { ico: 'fa-microphone',           txt: '🎙 Escuchando — presiona para enviar', bars: true,  color: 'escuchando' },
+        pensando:   { ico: 'fa-circle-notch fa-spin', txt: 'Pensando...',                         bars: false, color: ''           },
+        hablando:   { ico: 'fa-volume-high',          txt: 'ORION está hablando',                 bars: true,  color: 'hablando'   },
+    };
+
+    function setEstado(e) {
+        const c = EST[e] || EST.reposo;
+        btn.className     = `orion-voice-btn ${e}`;
         icon.className    = `fa-solid ${c.ico}`;
         label.textContent = c.txt;
-        bars.classList.toggle('visible', c.bars);
+        bars.className    = c.bars ? `orion-bars visible ${c.color}` : 'orion-bars';
     }
 
+    /* ── Selección inteligente de voz ─────────────────────
+       Prioridad:
+         1. Google Español  (Chrome desktop — la más natural)
+         2. Microsoft es    (Edge / Windows)
+         3. es-CO exacto
+         4. es-ES exacto
+         5. es-US exacto
+         6. Cualquier voz que empiece en "es"
+         7. Primera voz disponible como fallback
+    ──────────────────────────────────────────────────── */
+    function elegirVoz() {
+        const voces = window.speechSynthesis.getVoices();
+        if (!voces.length) return null;
+        const orden = [
+            v => /google.*español|google.*es[-_]/i.test(v.name),
+            v => /microsoft.*es[-_]/i.test(v.name),
+            v => v.lang === 'es-CO',
+            v => v.lang === 'es-ES',
+            v => v.lang === 'es-US',
+            v => v.lang.startsWith('es'),
+        ];
+        for (const fn of orden) {
+            const v = voces.find(fn);
+            if (v) return v;
+        }
+        return voces[0];
+    }
+
+    /* ── Síntesis de voz ──────────────────────────────── */
     function hablar(texto) {
         if (!window.speechSynthesis) { setEstado('reposo'); return; }
 
         const limpio = texto
             .replace(/\*\*/g, '').replace(/\*/g, '')
             .replace(/#+ /g, '').replace(/\n/g, '. ').trim();
+        if (!limpio) { setEstado('reposo'); return; }
 
         window.speechSynthesis.cancel();
 
-        const utt    = new SpeechSynthesisUtterance(limpio);
-        utt.lang     = 'es-CO';
-        utt.rate     = 1.05;
-        utt.pitch    = 1;
-        utt.volume   = 1;
+        // Android necesita un delay tras cancel()
+        setTimeout(() => {
+            const utt    = new SpeechSynthesisUtterance(limpio);
+            utt.rate     = 1.0;
+            utt.pitch    = 1.0;
+            utt.volume   = 1.0;
 
-        const voces  = window.speechSynthesis.getVoices();
-        const vozES  = voces.find(v => v.lang.startsWith('es')) || null;
-        if (vozES) utt.voice = vozES;
+            const voz = elegirVoz();
+            if (voz) { utt.voice = voz; utt.lang = voz.lang; }
+            else     { utt.lang  = 'es-ES'; }
 
-        utt.onstart = () => setEstado('hablando');
-        utt.onend   = () => setEstado('reposo');
-        utt.onerror = () => setEstado('reposo');
+            setEstado('hablando');
 
-        window.speechSynthesis.speak(utt);
+            // Keepalive: Android congela síntesis al ir a background
+            const kv = setInterval(() => {
+                if (!window.speechSynthesis.speaking) { clearInterval(kv); return; }
+                window.speechSynthesis.pause();
+                window.speechSynthesis.resume();
+            }, 10000);
+
+            utt.onend   = () => { clearInterval(kv); setEstado('reposo'); };
+            utt.onerror = (e) => { console.warn('TTS:', e); clearInterval(kv); setEstado('reposo'); };
+
+            window.speechSynthesis.speak(utt);
+        }, 150);
     }
 
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    /* ── Reconocimiento de voz ────────────────────────── */
+    function crearRec() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return null;
 
-    if (!SR) {
-        label.textContent = 'Voz no disponible';
-        btn.style.opacity = '0.4';
-        btn.style.cursor  = 'not-allowed';
-        return;
+        const r = new SR();
+        r.lang            = 'es-CO';
+        r.continuous      = true;   // ← no corta por silencio
+        r.interimResults  = true;   // ← feedback en tiempo real
+        r.maxAlternatives = 1;
+
+        let final = '';
+
+        r.onstart = () => {
+            final = '';
+            setEstado('escuchando');
+        };
+
+        r.onresult = (e) => {
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+            }
+            // Preview de lo capturado en el label
+            const v = final.trim();
+            label.textContent = v.length > 48
+                ? '…' + v.slice(-48)
+                : (v || '🎙 Escuchando — presiona para enviar');
+        };
+
+        r.onerror = (e) => {
+            // 'no-speech' es normal (el usuario no habló aún), no es error
+            if (e.error !== 'no-speech') setEstado('reposo');
+        };
+
+        r.onend = () => {
+            // Cierre inesperado sin segundo toque
+            if (btn.classList.contains('escuchando')) setEstado('reposo');
+        };
+
+        r._get = () => final.trim();
+        return r;
     }
 
-    const rec          = new SR();
-    rec.lang           = 'es-CO';
-    rec.continuous     = false;
-    rec.interimResults = false;
-    let activo         = false;
+    /* ── UN SOLO listener de click ────────────────────── */
+    btn.addEventListener('click', async () => {
 
-    rec.onstart = () => setEstado('escuchando');
-
-    rec.onresult = async (e) => {
-        const texto = e.results[0][0].transcript.trim();
-        if (!texto) { setEstado('reposo'); return; }
-
-        setEstado('pensando');
-
-        try {
-            const fd = new FormData();
-            fd.append('consulta', texto);
-
-            const resp = await fetch('/consultar', {
-                method: 'POST',
-                body: fd,
-                headers: { 'X-CSRFToken': csrf },
-                credentials: 'same-origin'
-            });
-
-            if (!resp.ok) throw new Error('HTTP error');
-
-            const data = await resp.json();
-            hablar(data.mensaje || 'No obtuve respuesta.');
-
-        } catch {
-            hablar('Hubo un error al conectar con ORION. Intenta de nuevo.');
-        }
-    };
-
-    rec.onerror = () => { activo = false; setEstado('reposo'); };
-    rec.onend   = () => {
-        activo = false;
-        if (btn.classList.contains('escuchando')) setEstado('reposo');
-    };
-
-    btn.addEventListener('click', () => {
+        // ── Hablando → interrumpir TTS
         if (btn.classList.contains('hablando')) {
             window.speechSynthesis?.cancel();
             setEstado('reposo');
             return;
         }
+
+        // ── Pensando → ignorar toque
         if (btn.classList.contains('pensando')) return;
-        if (!activo) { activo = true; rec.start(); }
+
+        // ── Escuchando → 2DO TOQUE: detener y enviar ──
+        if (btn.classList.contains('escuchando')) {
+            const texto = rec?._get() || '';
+            try { rec?.stop(); } catch (_) {}
+            rec = null;
+
+            if (!texto) {
+                label.textContent = 'No capturé nada, intenta de nuevo';
+                setTimeout(() => setEstado('reposo'), 1800);
+                return;
+            }
+
+            setEstado('pensando');
+
+            try {
+                const fd = new FormData();
+                fd.append('consulta', texto);
+
+                const resp = await fetch('/consultar', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-CSRFToken': csrf },
+                    credentials: 'same-origin'
+                });
+
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                hablar(data.mensaje || 'No obtuve respuesta.');
+
+            } catch (err) {
+                console.error('ORION:', err);
+                hablar('Hubo un error al conectar con ORION. Intenta de nuevo.');
+            }
+            return;
+        }
+
+        // ── Reposo → 1ER TOQUE: iniciar escucha ───────
+        rec = crearRec();
+
+        if (!rec) {
+            label.textContent = 'Voz no disponible en este navegador';
+            btn.style.opacity = '0.4';
+            btn.style.cursor  = 'not-allowed';
+            return;
+        }
+
+        try {
+            rec.start();
+        } catch (e) {
+            console.error('Rec start:', e);
+            setEstado('reposo');
+        }
     });
 
+    /* ── Precargar voces (Android las carga async) ────── */
     if (window.speechSynthesis) {
         window.speechSynthesis.getVoices();
         window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
     }
+
+    /* ── Verificar soporte del navegador ──────────────── */
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+        label.textContent = 'Voz no disponible';
+        btn.style.opacity = '0.4';
+        btn.style.cursor  = 'not-allowed';
+    }
+
 })();
 </script>
 
