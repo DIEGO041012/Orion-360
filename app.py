@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, current_app, jsonify
-from requests_oauthlib import OAuth2Session
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
@@ -37,7 +36,7 @@ import os
 import sys
 import requests
 from datetime import datetime, timezone
-import pytz  # 👈 IMPORTANTE
+import pytz
 
 load_dotenv()
 
@@ -54,8 +53,6 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # 🔥 GOOGLE LOGIN
-from flask_dance.contrib.google import make_google_blueprint, google
-
 google_bp = make_google_blueprint(
     client_id=app.config.get("GOOGLE_CLIENT_ID"),
     client_secret=app.config.get("GOOGLE_CLIENT_SECRET"),
@@ -688,15 +685,15 @@ def inicializar_groq():
     api_key = app.config.get('GROQ_API_KEY')
 
     if not api_key:
-        print('⚠️ GROQ_API_KEY no configurada; la función de asistente no funcionará.')
+        print('[WARNING] GROQ_API_KEY no configurada; la funcion de asistente no funcionara.')
         return None
 
     try:
         cliente = Groq(api_key=api_key)
-        print('✅ Groq API inicializada correctamente.')
+        print('[OK] Groq API inicializada correctamente.')
         return cliente
     except Exception as e:
-        print('⚠️ No se pudo inicializar Groq:', str(e)[:180])
+        print('[WARNING] No se pudo inicializar Groq:', str(e)[:180])
         return None
 
 
@@ -3060,15 +3057,15 @@ def inicializar_groq():
     api_key = app.config.get('GROQ_API_KEY')
 
     if not api_key:
-        print('⚠️ GROQ_API_KEY no configurada.')
+        print('[WARNING] GROQ_API_KEY no configurada.')
         return None
 
     try:
         cliente = Groq(api_key=api_key)
-        print('✅ Groq API inicializada correctamente.')
+        print('[OK] Groq API inicializada correctamente.')
         return cliente
     except Exception as e:
-        print('⚠️ No se pudo inicializar Groq:', str(e)[:180])
+        print('[WARNING] No se pudo inicializar Groq:', str(e)[:180])
         return None
 
 
