@@ -157,12 +157,13 @@
     {% endfor %}
   {% endwith %}
 
-  <div class="upload-zone" id="uploadZone">
-    <input type="file" id="inputImagen" accept="image/jpeg,image/png,image/webp" capture="environment">
-    <div class="upload-icon"><i class="fa-solid fa-camera-retro"></i></div>
-    <div class="upload-title">Toca para tomar foto o seleccionar imagen</div>
-    <div class="upload-sub">JPG, PNG o WEBP · máximo 4 MB</div>
-  </div>
+<div class="upload-zone" id="uploadZone">
+  <!-- Sin capture="environment" → el móvil pregunta: cámara o galería -->
+  <input type="file" id="inputImagen" accept="image/jpeg,image/png,image/webp">
+  <div class="upload-icon"><i class="fa-solid fa-camera-retro"></i></div>
+  <div class="upload-title">Toca para seleccionar imagen</div>
+  <div class="upload-sub">JPG, PNG o WEBP · máximo 8 MB</div>
+</div>
 
   <div class="preview-section" id="previewSection">
     <div class="preview-img-wrap">
