@@ -1348,9 +1348,18 @@ def panel_usuario():
         ''', (usuario_id,))
         tareas_estado_rows = cursor.fetchall()
 
-        # ── Procesamiento Python ──
+        # ── Procesamiento Python CORREGIDO ──
         from collections import OrderedDict
+        import calendar
+
         hoy = date.today()
+
+        MESES_ES = {
+            1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr", 5: "May", 6: "Jun",
+            7: "Jul", 8: "Ago", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic"
+        }
+
+        # Últimos 6 meses
         meses = []
         for i in range(5, -1, -1):
             y, m = hoy.year, hoy.month - i
@@ -1359,33 +1368,39 @@ def panel_usuario():
                 y -= 1
             meses.append((y, m))
 
-        month_labels     = []
+        month_labels = []
         ingresos_por_mes = OrderedDict()
-        gastos_por_mes   = OrderedDict()
+        gastos_por_mes = OrderedDict()
+
         for y, m in meses:
             key = f"{y}-{m:02d}"
-            month_labels.append(f"{m:02d}/{str(y)[2:]}")
+            month_labels.append(f"{MESES_ES[m]} {y}")  # ✅ ya no confunde 04/26
             ingresos_por_mes[key] = 0.0
-            gastos_por_mes[key]   = 0.0
+            gastos_por_mes[key] = 0.0
 
         categoria_gastos = {}
-        saldo_timeline   = OrderedDict()
-        saldo_acumulado  = 0.0
+        movimientos_por_dia = OrderedDict()
+        saldo_acumulado = 0.0
 
         for mov in movimientos_chart:
             fecha_obj = to_date(mov['fecha'])
             if not fecha_obj:
                 continue
+
             fecha_key = fecha_obj.strftime('%Y-%m-%d')
+            fecha_label = fecha_obj.strftime('%d/%m')
             month_key = fecha_obj.strftime('%Y-%m')
+
             valor = float(mov['valor'] or 0)
-            tipo  = mov['tipo']
+            tipo = mov['tipo']
 
             if month_key in ingresos_por_mes:
-                if tipo == 'ingreso': ingresos_por_mes[month_key] += valor
-                elif tipo == 'gasto': gastos_por_mes[month_key]   += valor
+                if tipo in ('ingreso', 'abono_a_recibir'):
+                    ingresos_por_mes[month_key] += valor
+                elif tipo in ('gasto', 'abono_deuda', 'prestamo_entregado'):
+                    gastos_por_mes[month_key] += valor
 
-            if tipo == 'gasto':
+            if tipo in ('gasto', 'abono_deuda', 'prestamo_entregado'):
                 cat = mov['categoria_nombre'] or 'Sin categoría'
                 categoria_gastos[cat] = categoria_gastos.get(cat, 0) + valor
 
@@ -1393,36 +1408,49 @@ def panel_usuario():
                 saldo_acumulado += valor
             elif tipo in ('gasto', 'abono_deuda', 'prestamo_entregado'):
                 saldo_acumulado -= valor
-            saldo_timeline[fecha_key] = saldo_acumulado
 
-        saldo_items = list(saldo_timeline.items())[-8:]
-        task_map    = {'pendiente': 0, 'en progreso': 0, 'completada': 0, 'vencida': 0}
+            # ✅ Agrupa por día, pero conserva el saldo real acumulado al cierre del día
+            movimientos_por_dia[fecha_key] = {
+                'label': fecha_label,
+                'saldo': saldo_acumulado
+            }
+
+        saldo_items = list(movimientos_por_dia.values())[-8:]
+
+        task_map = {'pendiente': 0, 'en progreso': 0, 'completada': 0, 'vencida': 0}
         for row in tareas_estado_rows:
-            task_map[row['estado']] = int(row['cantidad'] or 0)
+            estado = row['estado'] or 'pendiente'
+            task_map[estado] = int(row['cantidad'] or 0)
 
         chart_data = {
             'incomeExpense': {
-                'labels':   month_labels,
+                'labels': month_labels,
                 'ingresos': [round(v, 2) for v in ingresos_por_mes.values()],
-                'gastos':   [round(v, 2) for v in gastos_por_mes.values()],
+                'gastos': [round(v, 2) for v in gastos_por_mes.values()],
             },
             'categoryExpense': {
                 'labels': list(categoria_gastos.keys()) or ['Sin datos'],
                 'values': [round(v, 2) for v in categoria_gastos.values()] or [0],
             },
             'balanceTrend': {
-                'labels': [i[0] for i in saldo_items] or ['Sin datos'],
-                'values': [round(i[1], 2) for i in saldo_items] or [0],
+                'labels': [i['label'] for i in saldo_items] or ['Sin datos'],
+                'values': [round(i['saldo'], 2) for i in saldo_items] or [0],
             },
             'taskStatus': {
                 'labels': ['Pendientes', 'En progreso', 'Completadas', 'Vencidas'],
-                'values': [task_map['pendiente'], task_map['en progreso'],
-                           task_map['completada'], task_map['vencida']],
+                'values': [
+                    task_map['pendiente'],
+                    task_map['en progreso'],
+                    task_map['completada'],
+                    task_map['vencida']
+                ],
             },
             'debtLoan': {
                 'labels': ['Deudas', 'Préstamos'],
-                'values': [deudas_pendientes['saldo_deudas_pendientes'],
-                           prestamos_resumen['saldo_prestamos']],
+                'values': [
+                    deudas_pendientes['saldo_deudas_pendientes'],
+                    prestamos_resumen['saldo_prestamos']
+                ],
             }
         }
 
