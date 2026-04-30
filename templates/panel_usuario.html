@@ -185,7 +185,7 @@
 
 .chart-grid-bottom {
     display: grid;
-    grid-template-columns: 1.4fr .8fr .8fr;
+    grid-template-columns: 1.85fr 1.5fr;
     gap: 16px;
 }
 
@@ -350,6 +350,14 @@
     text-align: center;
     color: var(--text-muted);
     font-size: 13px;
+}
+
+.full-width-chart {
+    grid-column: 1 / -1;
+}
+
+.chart-body.large {
+    height: 420px;
 }
 
 /* ══════════════════════════════════════════════
@@ -604,51 +612,46 @@
         </div>
     </div>
 
-    <div class="chart-grid-top">
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Ingresos vs gastos por mes</span>
+        <div class="chart-grid-top">
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Ingresos vs gastos por mes</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="incomeExpenseChart"></canvas>
+                </div>
             </div>
-            <div class="chart-body">
-                <canvas id="incomeExpenseChart"></canvas>
-            </div>
-        </div>
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Gastos por categoría</span>
-            </div>
-            <div class="chart-body">
-                <canvas id="categoryExpenseChart"></canvas>
-            </div>
-        </div>
-    </div>
 
-    <div class="chart-grid-bottom">
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Saldo disponible en el tiempo</span>
-            </div>
-            <div class="chart-body small">
-                <canvas id="balanceTrendChart"></canvas>
-            </div>
-        </div>
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Estado de tareas</span>
-            </div>
-            <div class="chart-body small">
-                <canvas id="taskStatusChart"></canvas>
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Estado de tareas</span>
+                </div>
+                <div class="chart-body">
+                    <canvas id="taskStatusChart"></canvas>
+                </div>
             </div>
         </div>
-        <div class="widget">
-            <div class="widget-header">
-                <span class="widget-title">Deudas vs préstamos</span>
+
+        <div class="chart-grid-bottom">
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Saldo disponible en el tiempo</span>
+                </div>
+                <div class="chart-body small">
+                    <canvas id="balanceTrendChart"></canvas>
+                </div>
             </div>
-            <div class="chart-body small">
-                <canvas id="debtLoanChart"></canvas>
+
+            
+            <div class="widget">
+                <div class="widget-header">
+                    <span class="widget-title">Deudas vs préstamos</span>
+                </div>
+                <div class="chart-body small">
+                    <canvas id="debtLoanChart"></canvas>
+                </div>
             </div>
         </div>
-    </div>
 
     <div class="panel-bottom">
         <div class="widget">
@@ -788,6 +791,15 @@
         </div>
     </div>
 
+    <div class="widget full-width-chart">
+    <div class="widget-header">
+        <span class="widget-title">Gastos por categoría</span>
+    </div>
+    <div class="chart-body large">
+        <canvas id="categoryBarChart"></canvas>
+    </div>
+</div>
+
 </div><!-- fin .panel-page -->
 
 <!-- ══════════════════════════════════════════════
@@ -821,13 +833,38 @@ new Chart(document.getElementById('incomeExpenseChart'), {
     options: { responsive: true, maintainAspectRatio: false }
 });
 
-new Chart(document.getElementById('categoryExpenseChart'), {
-    type: 'doughnut',
+new Chart(document.getElementById('categoryBarChart'), {
+    type: 'bar',
     data: {
         labels: chartData.categoryExpense.labels,
-        datasets: [{ data: chartData.categoryExpense.values, borderWidth: 1 }]
+        datasets: [{
+            label: 'Gastos',
+            data: chartData.categoryExpense.values,
+            borderWidth: 1
+        }]
     },
-    options: { responsive: true, maintainAspectRatio: false }
+    options: {
+        indexAxis: 'y', // 👈 CLAVE (horizontal como tu imagen)
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    color: '#aaa'
+                }
+            },
+            y: {
+                ticks: {
+                    color: '#aaa'
+                }
+            }
+        }
+    }
 });
 
 new Chart(document.getElementById('balanceTrendChart'), {
