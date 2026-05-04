@@ -16,6 +16,9 @@ from xhtml2pdf import pisa
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from concurrent.futures import ThreadPoolExecutor
+from flask_dance.contrib.google import make_google_blueprint, google
+from werkzeug.security import generate_password_hash
+import secrets
 import json
 import sqlite3
 import psycopg2
@@ -61,7 +64,7 @@ google_bp = make_google_blueprint(
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile"
     ],
-    redirect_url="/login/google"
+    redirect_to="google_callback"
 )
 
 app.register_blueprint(google_bp, url_prefix="/login")
@@ -1195,50 +1198,80 @@ def resetear_contrasena(token):
 
 # ── Google OAuth ──────────────────────────────────────────
 
-@app.route('/login/google')
-def login_google():
-    if not google.authorized:
-        return redirect(url_for("google.login"))
-    return redirect(url_for("panel_usuario"))
-
-
-@app.route("/google/callback")
+@app.route('/login/google/callback')
 def google_callback():
     if not google.authorized:
-        flash("No se pudo autenticar con Google.")
-        return redirect(url_for("iniciar_sesion"))
+        return redirect(url_for("google.login"))
 
-    resp = google.get("/oauth2/v1/userinfo")
+    resp = google.get("/oauth2/v2/userinfo")
+
     if not resp.ok:
-        flash("No se pudo obtener datos del usuario.")
+        flash("No se pudo obtener la información de Google.", "danger")
         return redirect(url_for("iniciar_sesion"))
 
-    user_info = resp.json()
-    email  = user_info.get("email")
-    nombre = user_info.get("name")
-    foto   = user_info.get("picture")
+    info = resp.json()
 
-    conn   = get_db_connection()
+    correo = info.get("email")
+    nombre = info.get("name") or correo.split("@")[0]
+    foto = info.get("picture")
+
+    if not correo:
+        flash("Google no devolvió un correo válido.", "danger")
+        return redirect(url_for("iniciar_sesion"))
+
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM usuarios WHERE correo_electronico = ?", (email,))
-    cuenta = cursor.fetchone()
 
-    if not cuenta:
+    try:
         cursor.execute(
-            'INSERT INTO usuarios (nombre_usuario, correo_electronico, contraseña, foto) VALUES (?, ?, ?, ?)',
-            (nombre, email, '', foto)
+            "SELECT * FROM usuarios WHERE correo_electronico = ?",
+            (correo,)
         )
-        conn.commit()
-        cursor.execute("SELECT * FROM usuarios WHERE correo_electronico = ?", (email,))
-        cuenta = cursor.fetchone()
+        usuario = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+        if not usuario:
+            username_base = nombre.replace(" ", "_").lower()
+            username = username_base
 
-    usuario_log = Usuario(cuenta['id'], cuenta['nombre_usuario'], cuenta['foto'])
-    login_user(usuario_log)
-    migrar_carrito_sesion_a_db(usuario_log.id)
-    return redirect(url_for("panel_usuario"))
+            cursor.execute(
+                "SELECT id FROM usuarios WHERE nombre_usuario = ?",
+                (username,)
+            )
+            existe_username = cursor.fetchone()
+
+            if existe_username:
+                username = f"{username_base}_{secrets.token_hex(3)}"
+
+            clave_random = generate_password_hash(secrets.token_urlsafe(24))
+
+            cursor.execute("""
+                INSERT INTO usuarios (nombre_usuario, correo_electronico, contraseña, foto)
+                VALUES (?, ?, ?, ?)
+            """, (username, correo, clave_random, foto))
+
+            conn.commit()
+
+            cursor.execute(
+                "SELECT * FROM usuarios WHERE correo_electronico = ?",
+                (correo,)
+            )
+            usuario = cursor.fetchone()
+
+        # ✅ CORRECCIÓN AQUÍ
+        user = Usuario(usuario['id'], usuario['nombre_usuario'], usuario['foto'])
+        login_user(user)
+
+        flash("Sesión iniciada con Google correctamente.", "success")
+        return redirect(url_for("panel_usuario"))
+
+    except Exception as e:
+        print("Error login Google:", e)
+        flash("Error al iniciar sesión con Google.", "danger")
+        return redirect(url_for("iniciar_sesion"))
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # ══════════════════════════════════════════════════════════
