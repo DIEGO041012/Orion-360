@@ -157,7 +157,7 @@ def construir_contexto_orion(usuario_id):
         cursor.execute("""
             SELECT COALESCE(SUM(
                 CASE
-                    WHEN tipo IN ('ingreso', 'abono_a_recibir') THEN valor
+                    WHEN tipo IN ('ingreso', 'abono_a_recibir', 'deuda') THEN valor
                     WHEN tipo IN ('gasto', 'abono_deuda', 'prestamo_entregado') THEN -valor
                     ELSE 0
                 END
@@ -1259,7 +1259,7 @@ def panel_usuario():
                 u.foto,
                 u.saldo_wallet,
                 (SELECT COALESCE(SUM(CASE
-                    WHEN tipo IN ('ingreso','abono_a_recibir')               THEN valor
+                    WHEN tipo IN ('ingreso','abono_a_recibir','deuda')        THEN valor
                     WHEN tipo IN ('gasto','abono_deuda','prestamo_entregado') THEN -valor
                     ELSE 0 END), 0)
                  FROM movimientos WHERE usuario_id = u.id) AS saldo_neto,
@@ -1395,7 +1395,7 @@ def panel_usuario():
             tipo = mov['tipo']
 
             if month_key in ingresos_por_mes:
-                if tipo in ('ingreso', 'abono_a_recibir'):
+                if tipo in ('ingreso', 'abono_a_recibir', 'deuda'):
                     ingresos_por_mes[month_key] += valor
                 elif tipo in ('gasto', 'abono_deuda', 'prestamo_entregado'):
                     gastos_por_mes[month_key] += valor
@@ -1404,7 +1404,7 @@ def panel_usuario():
                 cat = mov['categoria_nombre'] or 'Sin categoría'
                 categoria_gastos[cat] = categoria_gastos.get(cat, 0) + valor
 
-            if tipo in ('ingreso', 'abono_a_recibir'):
+            if tipo in ('ingreso', 'abono_a_recibir', 'deuda'):
                 saldo_acumulado += valor
             elif tipo in ('gasto', 'abono_deuda', 'prestamo_entregado'):
                 saldo_acumulado -= valor
@@ -1454,9 +1454,18 @@ def panel_usuario():
             }
         }
 
+        ahora_hora = datetime.now().hour
+        if ahora_hora < 12:
+            saludo = 'Buenos días'
+        elif ahora_hora < 19:
+            saludo = 'Buenas tardes'
+        else:
+            saludo = 'Buenas noches'
+
         return render_template(
             'panel_usuario.html',
             usuario=current_user.nombre_usuario,
+            saludo=saludo,
             usuario_foto=foto,
             ultimos_movimientos=ultimos_movimientos,
             tareas_pendientes=tareas_pendientes_lista,
@@ -1919,7 +1928,7 @@ def movimientos():
 
         cursor.execute("""
             SELECT COALESCE(SUM(CASE
-                WHEN tipo IN ('ingreso','abono_a_recibir')               THEN valor
+                WHEN tipo IN ('ingreso','abono_a_recibir','deuda')        THEN valor
                 WHEN tipo IN ('gasto','abono_deuda','prestamo_entregado') THEN -valor
                 ELSE 0 END), 0) AS saldo
             FROM movimientos WHERE usuario_id = ?
@@ -2021,6 +2030,31 @@ def formulario_registros():
                 conn.commit()
 
             elif tipo == 'deuda':
+                if conn.is_postgres:
+                    cursor.execute("""
+                        INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+                        VALUES (?, ?, ?, ?, ?, NULL) RETURNING id
+                    """, (
+                        fecha,
+                        f"Deuda adquirida de {persona}" if persona else 'Deuda adquirida',
+                        valor,
+                        'deuda',
+                        usuario_id
+                    ))
+                    movimiento_id = cursor.fetchone()['id']
+                else:
+                    cursor.execute("""
+                        INSERT INTO movimientos (fecha, descripcion, valor, tipo, usuario_id, categoria_id)
+                        VALUES (?, ?, ?, ?, ?, NULL)
+                    """, (
+                        fecha,
+                        f"Deuda adquirida de {persona}" if persona else 'Deuda adquirida',
+                        valor,
+                        'deuda',
+                        usuario_id
+                    ))
+                    movimiento_id = cursor.lastrowid
+
                 cursor.execute("""
                     INSERT INTO deudas (descripcion, persona, usuario_id, monto_inicial, saldo,
                         frecuencia, estado, fecha, fecha_creacion, tipo, movimiento_id)
